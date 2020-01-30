@@ -33,6 +33,7 @@ class JpLSTextConverter(JpBaseTextConverter):
             return 'HPが{}以{}'.format(thresh, '上' if above else '下')
 
     def matching_n_or_more_attr(self, attr, n_attr, is_range=False):
+        skill_text = ''
         if attr == [0, 1, 2, 3, 4]:
             skill_text += '{}色以上同時攻撃'.format(n_attr)
         elif attr == [0, 1, 2, 3, 4, 5]:
@@ -151,8 +152,8 @@ class JpLSTextConverter(JpBaseTextConverter):
     def combo_match_text(self, ls):
         if ls.min_combos == 0:
             return ''
-        skill_text += '{}コンボ以上で'.format(ls.min_combos)
-        skill_text = self.fmt_stats_type_attr_bonus(ls, reduce_join_txt='と', skip_attr_all=True, atk=ls.min_atk,
+        skill_text = '{}コンボ以上で'.format(ls.min_combos)
+        skill_text += self.fmt_stats_type_attr_bonus(ls, reduce_join_txt='と', skip_attr_all=True, atk=ls.min_atk,
                                                     rcv=ls.min_rcv)
         if ls.min_combos != ls.max_combos:
             skill_text += '、最大{}コンボで{}倍'.format(ls.max_combos, fmt_mult(ls.atk))
