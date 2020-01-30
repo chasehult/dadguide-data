@@ -96,8 +96,8 @@ class JpBaseTextConverter(BaseTextConverter):
         return '{}属性の敵から受けるダメージを{}％減少'.format(attr_text, shield_text)
 
     @staticmethod
-    def concat_list(iterable):
-        array = '、'.join([str(i) for i in iterable if i])
+    def concat_list(iterable, sep='、'):
+        array = sep.join([str(i) for i in iterable if i])
 
     @staticmethod
     def concat_list_and(iterable, conj='と'):
