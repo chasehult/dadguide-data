@@ -14,35 +14,35 @@ SERIES = json.load(open(os.path.join(__location__, "../../../storage_processor/s
 class JpLSTextConverter(JpBaseTextConverter):
     _COLLAB_MAP = {x['collab_id']: x['name_jp'] for x in SERIES if 'collab_id' in x}
     _GROUP_MAP = {0: 'ドット進化'}
+
     TAGS = {
         Tag.NO_SKYFALL: '【落ちコンなし】',
         Tag.DISABLE_POISON: '【毒ダメージを無効化】',
         Tag.BOARD_7X6: '【7×6マス】',
-        Tag.FIXED_TIME: '【操作時間{:d}秒】',
+        Tag.FIXED_TIME: '【操作時間{:d}秒固定】',
         Tag.ERASE_P: '【ドロップを{:d}個以下で消せない】',
     }
 
     def threshold_hp(self, thresh, above):
         thresh = int(thresh * 100)
         if thresh == 100:
-            return ' when HP is {}'.format('full' if above else 'not full')
+            return 'HPが{}'.format('満タン' if above else '99%以下')
         elif thresh == 1:
             return ''
         else:
-            return ' when {} {}% HP'.format('above' if above else 'below', thresh)
+            return 'HPが{}以{}'.format(thresh, '上' if above else '下')
 
     def matching_n_or_more_attr(self, attr, n_attr, is_range=False):
-        skill_text = ' when matching '
         if attr == [0, 1, 2, 3, 4]:
-            skill_text += '{} or more colors'.format(n_attr)
+            skill_text += '{}色以上同時攻撃'.format(n_attr)
         elif attr == [0, 1, 2, 3, 4, 5]:
-            skill_text += '{} or more colors ({}+heal)'.format(n_attr, n_attr - 1)
+            skill_text += '{}色({}色+回復)以上同時攻撃'.format(n_attr, n_attr - 1)
         elif len(attr) > n_attr and is_range:
-            skill_text += '{} of {}'.format(str(n_attr), self.attributes_to_str(attr))
+            skill_text += '{}を{}個つなげて'.format(self.attributes_to_str(attr), n_attr)
         elif len(attr) > n_attr:
-            skill_text += '{}+ of {} at once'.format(str(n_attr), self.attributes_to_str(attr))
+            skill_text += '{}を{}個以上つなげて'.format(self.attributes_to_str(attr), n_attr)
         else:
-            skill_text += '{} at once'.format(self.attributes_to_str(attr))
+            skill_text += '{}同時攻撃'.format(self.attributes_to_str(attr))
         return skill_text
 
     def passive_stats_text(self, ls, **kwargs):
@@ -120,7 +120,7 @@ class JpLSTextConverter(JpBaseTextConverter):
                 elif len(ls.match_attributes) > ls.max_attr:
                     skill_text += '{}個ところまで{}倍'.format(str(ls.max_attr), fmt_mult(ls.max_atk))
                 else:
-                    skill_text += '{} at once'.format(self.attributes_to_str(ls.match_attributes))
+                    skill_text += '同時攻撃で{}倍'.format(self.attributes_to_str(ls.match_attributes))
         return skill_text
 
     def multi_attribute_match_text(self, ls):
