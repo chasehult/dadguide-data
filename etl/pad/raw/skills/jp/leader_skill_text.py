@@ -244,7 +244,7 @@ class JpLSTextConverter(JpBaseTextConverter):
     def color_cross_text(self, ls):
         atk = fmt_mult(ls.atk)
         attrs = self.attributes_to_str(ls.attributes, concat='か').replace('、','か')
-        return '{}}の5個十字消し1個につき攻撃力が{}倍'.format(attrs, atk)
+        return '{}の5個十字消し1個につき攻撃力が{}倍'.format(attrs, atk)
 
     def collab_bonus_text(self, ls):
         collab_name = self._COLLAB_MAP.get(ls.collab_id, '〈不明なコラボ：{}〉'.format(ls.collab_id))
@@ -273,8 +273,8 @@ class JpLSTextConverter(JpBaseTextConverter):
             stat_text = ''
         else:
             stat_text = '、'+stat_text
-        skill_text += '{}を{}個以上つなげて消しと{}{}コンボ加算'.format(self.fmt_multi_attr(ls.attributes, conj='と'), 
-                                                                ls.min_match,stat_text, ls.bonus_combo)
+        skill_text = '{}を{}個以上つなげて消しと{}{}コンボ加算'.format(self.fmt_multi_attr(ls.attributes, conj='と'), 
+                                                              ls.min_match,stat_text, ls.bonus_combo)
         return skill_text
 
     def l_match_text(self, ls):
