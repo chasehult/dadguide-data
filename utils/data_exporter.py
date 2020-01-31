@@ -11,7 +11,7 @@ from pad.raw.skills import skill_text_typing
 from pad.raw.skills.en.active_skill_text import EnASTextConverter
 from pad.raw.skills.jp.active_skill_text import JpASTextConverter
 from pad.raw.skills.en.leader_skill_text import EnLSTextConverter
-from pad.raw.skills.en.leader_skill_text import JpLSTextConverter
+from pad.raw.skills.jp.leader_skill_text import JpLSTextConverter
 from pad.raw.skills.jp.enemy_skill_text import JpESTextConverter
 from pad.raw.skills.en.enemy_skill_text import EnESTextConverter
 
