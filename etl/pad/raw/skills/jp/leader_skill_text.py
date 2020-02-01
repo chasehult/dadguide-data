@@ -30,7 +30,7 @@ class JpLSTextConverter(JpBaseTextConverter):
         elif thresh == 1:
             return ''
         else:
-            return 'HPが{}以{}'.format(thresh, '上' if above else '下')
+            return 'HPが{}%以{}で'.format(thresh, '上' if above else '下')
 
     def matching_n_or_more_attr(self, attr, n_attr, is_range=False):
         skill_text = ''
@@ -43,7 +43,7 @@ class JpLSTextConverter(JpBaseTextConverter):
         elif len(attr) > n_attr:
             skill_text += '{}を{}個以上つなげて'.format(self.attributes_to_str(attr), n_attr)
         else:
-            skill_text += '{}同時攻撃'.format(self.attributes_to_str(attr))
+            skill_text += '{}同時攻撃'.format(self.attributes_to_str(attr, concat='、'))
         return skill_text
 
     def passive_stats_text(self, ls, **kwargs):
@@ -69,7 +69,7 @@ class JpLSTextConverter(JpBaseTextConverter):
         return 'ドロップ操作時に太鼓の音がなる'
 
     def threshold_stats_text(self, ls):
-        return '{}で{}'.format(self.threshold_hp(ls.threshold, ls.above), self.passive_stats_text(ls, reduce_join_txt='と'))
+        return self.threshold_hp(ls.threshold, ls.above) + self.passive_stats_text(ls, reduce_join_txt='、')
 
     def counter_attack_text(self, ls):
         attribute = self.ATTRIBUTES[ls.attributes[0]]
@@ -103,12 +103,12 @@ class JpLSTextConverter(JpBaseTextConverter):
         return '{}コンボちょっとで攻撃力が{}倍'.format(ls.combos, fmt_mult(ls.atk))
     
     def attribute_match_text(self, ls):
-        skill_text = self.fmt_stats_type_attr_bonus(ls, reduce_join_txt='と', skip_attr_all=True,
+        skill_text = self.matching_n_or_more_attr(ls.match_attributes, ls.min_attr, is_range = ls.max_attr > ls.min_attr)
+        skill_text += 'で'+self.fmt_stats_type_attr_bonus(ls, reduce_join_txt='、', skip_attr_all=True,
                                                     atk=ls.min_atk, rcv=ls.min_rcv)
-        skill_text += 'で'+self.matching_n_or_more_attr(ls.match_attributes, ls.min_attr, is_range = ls.max_attr > ls.min_attr)
         
         if ls.max_atk > ls.min_atk:
-            skill_text = '、'
+            skill_text += '、'
             if ls.match_attributes == [0, 1, 2, 3, 4, 5]:
                 skill_text += '5色+回復で{}倍'.format(fmt_mult(ls.max_atk))
             elif ls.max_attr < 5 and (len(ls.match_attributes) < 5 or 5 in ls.match_attributes):
@@ -128,32 +128,32 @@ class JpLSTextConverter(JpBaseTextConverter):
         if not ls.match_attributes:
             return ''
 
-        stat_text = self.fmt_stats_type_attr_bonus(ls, reduce_join_txt='と', skip_attr_all=True,
+        stat_text = self.fmt_stats_type_attr_bonus(ls, reduce_join_txt='、', skip_attr_all=True,
                                                     atk=ls.min_atk,
                                                     rcv=ls.min_rcv)
 
         if len(set(ls.match_attributes)) == 1:
-            skill_text = '{}の{}コンボ'.format(ls.min_match,self.ATTRIBUTES[ls.match_attributes[0]])
+            skill_text = '{}の{}コンボ'.format(self.ATTRIBUTES[ls.match_attributes[0]], ls.min_match)
             if not len(ls.match_attributes) != ls.min_match:
                 skill_text += '以上'
             skill_text += 'で{}'.format(stat_text)
             if len(ls.match_attributes) != ls.min_match:
                 skill_text += '、最大{}コンボで{}倍'.format(len(ls.match_attributes), fmt_mult(ls.max_atk))
         else:
-            skill_text = '{}の'.format(self.attributes_to_str(ls.match_attributes[:ls.min_match]))
+            skill_text = '{}'.format(self.attributes_to_str(ls.match_attributes[:ls.min_match], concat = '、'))
             if len(ls.match_attributes) > ls.min_match:
                 skill_text += '({})のコンボ消すと{}'.format(self.attributes_to_str(ls.match_attributes[1:]), stat_text)
             else:
-                skill_text += '同時攻撃で{}'.format(stat_text)
+                skill_text += 'の同時攻撃で{}'.format(stat_text)
             if ls.max_atk > ls.min_atk:
-                skill_text += '、最大{}で{}倍'.format(self.attributes_to_str(ls.match_attributes), fmt_mult(ls.max_atk))
+                skill_text += 'の、最大{}で{}倍'.format(self.attributes_to_str(ls.match_attributes), fmt_mult(ls.max_atk))
         return skill_text
 
     def combo_match_text(self, ls):
         if ls.min_combos == 0:
             return ''
         skill_text = '{}コンボ以上で'.format(ls.min_combos)
-        skill_text += self.fmt_stats_type_attr_bonus(ls, reduce_join_txt='と', skip_attr_all=True, atk=ls.min_atk,
+        skill_text += self.fmt_stats_type_attr_bonus(ls, reduce_join_txt='、', skip_attr_all=True, atk=ls.min_atk,
                                                     rcv=ls.min_rcv)
         if ls.min_combos != ls.max_combos:
             skill_text += '、最大{}コンボで{}倍'.format(ls.max_combos, fmt_mult(ls.atk))
@@ -166,7 +166,7 @@ class JpLSTextConverter(JpBaseTextConverter):
         return skill_text
 
     def mass_match_text(self, ls):
-        stat_text = self.fmt_stats_type_attr_bonus(ls, reduce_join_txt='と', skip_attr_all=True,
+        stat_text = self.fmt_stats_type_attr_bonus(ls, reduce_join_txt='、', skip_attr_all=True,
                                                     atk=ls.min_atk, rcv=ls.min_rcv)
         skill_text = 'ドロップを{}個{}つなげて消すと{}'.format(ls.min_count,
                                                         '以上' if ls.max_count != ls.min_count else '',
@@ -174,7 +174,7 @@ class JpLSTextConverter(JpBaseTextConverter):
         if self.fmt_multi_attr(ls.match_attributes):
             skill_text = self.fmt_multi_attr(ls.match_attributes)+skill_text
         if ls.max_count != ls.min_count and ls.max_count > 0:
-            skill_text += '、{}個のところまで{}倍'.format(ls.max_count, fmt_mult(ls.atk))
+            skill_text += '、最大{}個で{}倍'.format(ls.max_count, fmt_mult(ls.atk))
         return skill_text
 
     def team_build_bonus_text(self, ls):
@@ -205,25 +205,25 @@ class JpLSTextConverter(JpBaseTextConverter):
     def dual_threshold_stats_text(self, ls):
         skill_parts = []
         if str(ls.atk_1) != '1' or ls.rcv_1 != 1 or ls.shield_1 != 0:
-            skill_text = self.fmt_stats_type_attr_bonus(None, reduce_join_txt='と', skip_attr_all=True,
+            skill_text = self.threshold_hp(ls.threshold_1, ls.above_1)
+            skill_text += self.fmt_stats_type_attr_bonus(None, reduce_join_txt='、', skip_attr_all=True,
                                                         atk = ls.atk_1,
                                                         rcv = ls.rcv_1,
                                                         types = ls.types,
                                                         attributes = ls.attributes,
                                                         hp = ls.hp,
                                                         shield = ls.shield_1)
-            skill_text += self.threshold_hp(ls.threshold_1, ls.above_1)
             skill_parts.append(skill_text)
 
         if ls.threshold_2 != 0:
-            skill_text = self.fmt_stats_type_attr_bonus(None, reduce_join_txt='と', skip_attr_all=True,
+            skill_text = self.threshold_hp(ls.threshold_2, ls.above_2)
+            skill_text += self.fmt_stats_type_attr_bonus(None, reduce_join_txt='、', skip_attr_all=True,
                                                         atk = ls.atk_2,
                                                         rcv = ls.rcv_2,
                                                         types = ls.types,
                                                         attributes = ls.attributes,
                                                         hp = ls.hp,
                                                         shield = ls.shield_2)
-            skill_text += self.threshold_hp(ls.threshold_2, ls.above_2)
             skill_parts.append(skill_text)
         return self.concat_list_semicolons(skill_parts)
 
@@ -234,7 +234,7 @@ class JpLSTextConverter(JpBaseTextConverter):
         return '強化ドロップを含めてを5個消した属性の攻撃力が{}倍'.format(fmt_mult(ls.atk))
 
     def heart_cross_text(self, ls):
-        multiplier_text = self.passive_stats_text(ls, reduce_join_txt='と')
+        multiplier_text = self.passive_stats_text(ls, reduce_join_txt='、')
         return '回復の5個十字消しで{}'.format(multiplier_text)
 
     def multi_play_text(self, ls):
@@ -264,12 +264,12 @@ class JpLSTextConverter(JpBaseTextConverter):
         if ls.bonus_atk != 0:
             skill_text += 'で攻撃力{}倍、0個のところまで{}倍'.format(fmt_mult(ls.base_atk), fmt_mult(ls.atk))
         else:
-            skill_text += '以下で攻撃力{}倍'.format(fmt_mult(ls.base_atk))
+            skill_text += '以下で攻撃力が{}倍'.format(fmt_mult(ls.base_atk))
         return skill_text
 
     def multi_mass_match_text(self, ls):
         stat_text = self.fmt_multiplier_text(1, ls.atk, 1)
-        if ls.atk not in [0, 1]:
+        if ls.atk in [0, 1]:
             stat_text = ''
         else:
             stat_text = '、'+stat_text
@@ -302,7 +302,7 @@ class JpLSTextConverter(JpBaseTextConverter):
         if ls.unbind_amt != 0:
             skill_parts.append('覚醒無効を{}ターン回復'.format(ls.unbind_amt))
         skill_text = '回復ドロップで{}以上回復すると'.format(ls.heal_amt)
-        skill_text += self.concat_list_and(skill_parts)
+        skill_text += self.concat_list(skill_parts)
         return skill_text
 
     def rainbow_bonus_damage_text(self, ls):
@@ -311,7 +311,7 @@ class JpLSTextConverter(JpBaseTextConverter):
         return skill_text
 
     def mass_match_bonus_damage_text(self, ls):
-        skill_text = 'を{}個以上つなげて消しと固定{}ダメージ'.format(ls.bonus_damage, ls.min_match)
+        skill_text = 'を{}個以上つなげて消しと固定{}ダメージ'.format(ls.min_match, ls.bonus_damage)
         if self.fmt_multi_attr(ls.attributes):
             skill_text = self.fmt_multi_attr(ls.attributes) + skill_text
         else:
