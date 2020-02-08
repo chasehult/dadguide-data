@@ -1203,39 +1203,22 @@ class LSMultiboost(LeaderSkill):
         return converter.multi_play_text(self)
 
 
-class CrossMultiplier(object):
-    def __init__(self, attribute: str, atk: float):
-        self.attribute = attribute
-        self.atk = atk
-
-
 class LSAttrCross(LeaderSkill):
     skill_type = 157
 
     def __init__(self, ms: MonsterSkill):
-        self.crosses = [CrossMultiplier(a, mult(d)) for a, d in zip(ms.data[::2], ms.data[1::2])]
-        if len(set([x.atk for x in self.crosses])) > 1:
+        self.atks = sorted(ms.data[1::2])
+        if len(set(self.atks)) > 1:
             human_fix_logger.error('Bad assumption; cross LS has multiple attack values: %s', ms.skill_id)
 
         self.multiplier = mult(ms.data[1])
         self.attributes = ms.data[::2]
-        super().__init__(157, ms)
+
+        atk = self.atks[0] ** (2 if len(self.attributes)==1 else 3)
+        super().__init__(157, ms, atk=round(atk,2))
 
     def text(self, converter) -> str:
         return converter.color_cross_text(self)
-
-    @property
-    def atk(self):
-        atks = sorted([x.atk for x in self.crosses])
-        if len(atks) > 2:
-            atks = atks[:2]
-
-        v = atks[0]
-        v = v * atks[0]
-        if len(atks) > 1:
-            v = v * atks[1]
-
-        return round(v, 2)
 
 
 class LSMatchXOrMoreOrbs(LeaderSkill):

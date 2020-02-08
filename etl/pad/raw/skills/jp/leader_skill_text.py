@@ -168,7 +168,7 @@ class JpLSTextConverter(JpBaseTextConverter):
     def mass_match_text(self, ls):
         stat_text = self.fmt_stats_type_attr_bonus(ls, reduce_join_txt='、', skip_attr_all=True,
                                                     atk=ls.min_atk, rcv=ls.min_rcv)
-        skill_text = 'ドロップを{}個{}つなげて消すと{}'.format(ls.min_count,
+        skill_text = 'を{}個{}つなげて消すと{}'.format(ls.min_count,
                                                         '以上' if ls.max_count != ls.min_count else '',
                                                         stat_text)
         if self.fmt_multi_attr(ls.match_attributes):
@@ -242,7 +242,7 @@ class JpLSTextConverter(JpBaseTextConverter):
         return 'マルチプレイ時に{}。'.format(multiplier_text)
 
     def color_cross_text(self, ls):
-        atk = fmt_mult(ls.atk)
+        atk = fmt_mult(ls.atks[0])
         attrs = self.attributes_to_str(ls.attributes, concat='か').replace('、','か')
         return '{}の5個十字消し1個につき攻撃力が{}倍。'.format(attrs, atk)
 
@@ -271,9 +271,7 @@ class JpLSTextConverter(JpBaseTextConverter):
         stat_text = self.fmt_multiplier_text(1, ls.atk, 1)
         if ls.atk in [0, 1]:
             stat_text = ''
-        else:
-            stat_text = '、'+stat_text
-        skill_text = '{}を{}{}個以上つなげて消しと{}{}コンボ加算。'.format(self.fmt_multi_attr(ls.attributes, conj='と'), 
+        skill_text = '{}を{}{}個以上つなげて消しと{}、{}コンボ加算。'.format(self.fmt_multi_attr(ls.attributes, conj='と'), 
                                                                 ls.min_match,
                                                                 '同時に' if len(ls.attributes)>1 else '',
                                                                 stat_text, ls.bonus_combo)
@@ -289,10 +287,10 @@ class JpLSTextConverter(JpBaseTextConverter):
 
     def add_combo_att_text(self, ls):
         attr_condition_text = self.matching_n_or_more_attr(ls.attributes, ls.min_attr)
-        skill_text = ''
+        skill_text = '{}で'.format(attr_condition_text)
         if ls.atk not in [0, 1]:
-            skill_text += self.fmt_multiplier_text(1, ls.atk, 1) +'と'
-        skill_text += '{}で{}コンボ加算。'.format(attr_condition_text, ls.bonus_combo)
+            skill_text += self.fmt_multiplier_text(1, ls.atk, 1) +'、'
+        skill_text += '{}コンボ加算。'.format(ls.bonus_combo)
         return skill_text
 
     def orb_heal_text(self, ls):
