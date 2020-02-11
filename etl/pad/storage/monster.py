@@ -247,7 +247,7 @@ class ActiveSkill(SimpleSqlItem):
         jp_description = jp_skill.full_text(jp_as_converter)
 
         en_as_converter = EnASTextConverter()
-        na_description = jp_skill.full_text(en_as_converter)
+        na_description = jp_skill.changeLang(na_skill).full_text(en_as_converter)
 
         skill_type_tags = skill_text_typing.parse_as_conditions(css)
         tags = skill_text_typing.format_conditions(skill_type_tags)
@@ -309,7 +309,7 @@ class LeaderSkill(SimpleSqlItem):
 
         en_ls_converter = EnLSTextConverter()
         jp_ls_converter = JpLSTextConverter()
-        na_description = jp_skill.full_text(en_ls_converter)
+        na_description = jp_skill.changeLang(na_skill).full_text(en_ls_converter)
         jp_description = jp_skill.full_text(jp_ls_converter)
         skill_type_tags = skill_text_typing.parse_ls_conditions(css)
         tags = skill_text_typing.format_conditions(skill_type_tags)

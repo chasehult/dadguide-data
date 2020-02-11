@@ -16,6 +16,7 @@ class LeaderSkill(object):
                  hp: float = 1, atk: float = 1, rcv: float = 1, shield: float = 0):
         if skill_type != ms.skill_type:
             raise ValueError('Expected {} but got {}'.format(skill_type, ms.skill_type))
+        self.ms = ms
         self.skill_id = ms.skill_id
         self.skill_type = ms.skill_type
         if not hasattr(self, 'tags'): self.tags = []
@@ -25,6 +26,16 @@ class LeaderSkill(object):
         self._atk = round(atk, 2)
         self._rcv = round(rcv, 2)
         self._shield = round(shield, 2)
+
+    def copy(self):
+        return self.__class__(self.ms.copy())
+
+    def changeLang(self, toLang):
+        new = self.__class__(self.ms)
+        new.name = toLang.name
+        new.raw_description = toLang.raw_description
+        return new
+
 
     @property
     def hp(self):
@@ -1069,6 +1080,15 @@ class LSMultiPartSkill(LeaderSkill):
         self.child_skills = []
         super().__init__(138, ms)
 
+    def copy(self):
+        for cs in self.child_skills:
+            newcs = cs.__class__(cs.ms)
+            new.child_skills.append(newcs)
+        return new
+
+    def changeLang(self, toLang):
+        return self
+
     @property
     def hp(self):
         v = 1
@@ -1216,7 +1236,7 @@ class LSAttrCross(LeaderSkill):
         self.multiplier = mult(ms.data[1])
         self.attributes = ms.data[::2]
 
-        self.crossmults = [CrossMultiplier(data[i], data[i+1]) for i in range(0,len(data),2)]
+        #self.crossmults = [CrossMultiplier(data[i], data[i+1]) for i in range(0,len(data),2)]
 
         atk = self.multiplier ** (2 if len(self.attributes)==1 else 3)
         super().__init__(157, ms, atk=round(atk, 2))

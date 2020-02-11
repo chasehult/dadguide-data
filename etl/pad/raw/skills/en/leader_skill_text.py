@@ -46,7 +46,11 @@ class EnLSTextConverter(EnBaseTextConverter):
         return skill_text
 
     def passive_stats_text(self, ls, **kwargs):
-        return self.fmt_stats_type_attr_bonus(ls, **kwargs)
+        skill_text = self.fmt_stats_type_attr_bonus(ls, **kwargs)
+        if skill_text:
+            return skill_text
+        else:
+            return ls.raw_description
 
     def after_attack_text(self, ls):
         return '{}x ATK additional damage when matching orbs'.format(fmt_mult(ls.multiplier))

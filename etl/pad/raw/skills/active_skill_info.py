@@ -49,6 +49,7 @@ class ActiveSkill(object):
         if self.skill_type != ms.skill_type:
             raise ValueError('Expected {} but got {}'.format(self.skill_type, ms.skill_type))
         self.skill_id = ms.skill_id
+        self.ms = ms
 
         self.name = ms.name
         self.raw_description = ms.clean_description
@@ -56,6 +57,16 @@ class ActiveSkill(object):
         self.levels = ms.levels
         self.turn_max = ms.turn_max
         self.turn_min = ms.turn_min
+
+
+    def copy(self):
+        return self.__class__(self.ms.copy())
+
+    def changeLang(self, toLang):
+        new = self.__class__(self.ms)
+        new.name = toLang.name
+        new.raw_description = toLang.raw_description
+        return new
 
     def text(self, converter: ASTextConverter) -> str:
         return '<unsupported>: {}'.format(self.raw_description)
@@ -605,6 +616,15 @@ class ASMultiPartSkill(ActiveSkill):
         self.child_skills = []
         super().__init__(ms)
 
+    def copy(self):
+        for cs in self.child_skills:
+            newcs = cs.__class__(cs.ms)
+            new.child_skills.append(newcs)
+        return new
+
+    def changeLang(self, toLang):
+        return self
+
     @property
     def parts(self):
         return self.child_skills
@@ -645,11 +665,20 @@ class ASRandomSkill(ActiveSkill):
         self.random_skills = []
         super().__init__(ms)
 
+    def copy(self):
+        for cs in self.random_skills:
+            newcs = cs.__class__(cs.ms)
+            new.random_skills.append(newcs)
+        return new
+
+    def changeLang(self, toLang):
+        return self
+
     @property
     def parts(self):
-        return sum([s.parts if isinstance(s, TwoPartActiveSkill) else [s] 
+        return sum([s.parts if isinstance(s, TwoPartActiveSkill) else [s]
                    for s in self.random_skills], [])
-    
+
     def text(self, converter: ASTextConverter) -> str:
         return converter.random_skill(self)
 

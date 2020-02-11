@@ -135,7 +135,7 @@ def dump_skill(f, css, converter, tag_extractor_fn):
     jp_skill = css.jp_skill
     na_skill = css.na_skill
     kr_skill = css.kr_skill
-    en_text = jp_skill.full_text(converter[1])
+    en_text = jp_skill.changeLang(na_skill).full_text(converter[1])
     skill_type_tags = tag_extractor_fn(css)
 
     f.write('# {}/{} - {}\n'.format(jp_skill.skill_id, jp_skill.skill_type, na_skill.name))
