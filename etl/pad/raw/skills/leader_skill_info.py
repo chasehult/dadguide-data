@@ -1,6 +1,7 @@
 import logging
 from typing import List, Optional
 from functools import reduce
+from collections import namedtuple
 
 from pad.raw.skill import MonsterSkill
 from pad.raw.skills.en.skill_common import *
@@ -1202,6 +1203,7 @@ class LSMultiboost(LeaderSkill):
     def text(self, converter) -> str:
         return converter.multi_play_text(self)
 
+CrossMultiplier = namedtuple("CrossMultiplier", ['attribute', 'atk'])
 
 class LSAttrCross(LeaderSkill):
     skill_type = 157
@@ -1214,8 +1216,10 @@ class LSAttrCross(LeaderSkill):
         self.multiplier = mult(ms.data[1])
         self.attributes = ms.data[::2]
 
-        atk = self.atks[0] ** (2 if len(self.attributes)==1 else 3)
-        super().__init__(157, ms, atk=round(atk,2))
+        self.crossmults = [CrossMultiplier(data[i], data[i+1]) for i in range(0,len(data),2)]
+
+        atk = self.multiplier ** (2 if len(self.attributes)==1 else 3)
+        super().__init__(157, ms, atk=round(atk, 2))
 
     def text(self, converter) -> str:
         return converter.color_cross_text(self)

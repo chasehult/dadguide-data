@@ -242,7 +242,7 @@ class JpLSTextConverter(JpBaseTextConverter):
         return 'マルチプレイ時に{}。'.format(multiplier_text)
 
     def color_cross_text(self, ls):
-        atk = fmt_mult(ls.atks[0])
+        atk = fmt_mult(ls.multiplier)
         attrs = self.attributes_to_str(ls.attributes, concat='か').replace('、','か')
         return '{}の5個十字消し1個につき攻撃力が{}倍。'.format(attrs, atk)
 
