@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from typing import List
 
 from pad.raw.skill import MonsterSkill
@@ -647,9 +647,9 @@ class ASRandomSkill(ActiveSkill):
 
     @property
     def parts(self):
-        return sum([s.parts if isinstance(s, TwoPartActiveSkill) else [s] 
+        return sum([s.parts if isinstance(s, TwoPartActiveSkill) else [s]
                    for s in self.random_skills], [])
-    
+
     def text(self, converter: ASTextConverter) -> str:
         return converter.random_skill(self)
 
@@ -667,6 +667,7 @@ class ASIncreasedSkyfallChance(ActiveSkill):
     def text(self, converter: ASTextConverter) -> str:
         return converter.change_skyfall_convert(self)
 
+OrbLine = namedtuple("OrbLine", ["index", "attr"])
 
 class ASColumnOrbChange(ActiveSkill):
     skill_type = 127
@@ -674,7 +675,10 @@ class ASColumnOrbChange(ActiveSkill):
     def __init__(self, ms: MonsterSkill):
         data = merge_defaults(ms.data, [])
         # TODO: simplify this
-        self.columns = [{'index': i, 'orbs': binary_con(orbs)} for indices, orbs in
+        if [ol for ol in data[1::2] if len(binary_con(ol)) != 1]:
+            human_fix_logger.error('Bad assumption; column has multiple attributes: %s', ms.skill_id)
+
+        self.columns = [OrbLine(int(i), int(binary_con(orbs)[0])) for indices, orbs in
                         zip(data[::2], data[1::2]) for i in binary_con(indices)]
         super().__init__(ms)
 
@@ -688,7 +692,10 @@ class ASRowOrbChange(ActiveSkill):
     def __init__(self, ms: MonsterSkill):
         data = merge_defaults(ms.data, [])
         # TODO: simplify this
-        self.rows = [{'index': i, 'orbs': binary_con(orbs)} for indices, orbs in
+        if [ol for ol in data[1::2] if len(binary_con(ol)) != 1]:
+            human_fix_logger.error('Bad assumption; row has multiple attributes: %s', ms.skill_id)
+
+        self.rows = [OrbLine(int(i), int(binary_con(orbs)[0])) for indices, orbs in
                      zip(data[::2], data[1::2]) for i in binary_con(indices)]
         super().__init__(ms)
 
@@ -1073,6 +1080,18 @@ class ASChangeMonster(ActiveSkill):
 
     def text(self, converter: ASTextConverter) -> str:
         return converter.change_monster(self)
+
+class ASSkyfallLock(ActiveSkill):
+    skill_type = 205
+
+    def __init__(self, ms: MonsterSkill):
+        data = merge_defaults(ms.data, [1,1])
+        self.orbs = binary_con(data[0])
+        self.duration = data[1]
+        super().__init__(ms)
+
+    def text(self, converter: ASTextConverter) -> str:
+        return converter.skyfall_lock(self)
 
 
 def convert(skill_list: List[MonsterSkill]):

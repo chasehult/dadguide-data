@@ -111,10 +111,6 @@ class JpESTextConverter(JpBaseTextConverter, BaseESTextConverter):
         if exclude_hearts:
             output += '回復ドロップ以外'
 
-        if random_type_count:
-            random_count = random_type_count
-            human_fix_logger.warning('JP ES needs updating to account for random_type_count')
-
         if random_count is not None:
             if orb_from == 'ランダム属性の':
                 output += 'ランダムで{}個のドロップ'.format(random_count)
