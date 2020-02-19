@@ -116,6 +116,8 @@ class JpESTextConverter(JpBaseTextConverter, BaseESTextConverter):
                 output += 'ランダムで{}個のドロップ'.format(random_count)
             else:
                 output += '{}ドロップ{}個'.format(orb_from, random_count)
+        elif random_type_count is not None:
+            output += 'ランダムで{}色'.format(random_type_count)
         else:
             output += '{}ドロップ'.format(orb_from)
         output += 'を{}ドロップに変化'.format(orb_to)

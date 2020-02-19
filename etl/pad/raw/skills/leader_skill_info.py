@@ -1203,7 +1203,6 @@ class LSMultiboost(LeaderSkill):
     def text(self, converter) -> str:
         return converter.multi_play_text(self)
 
-
 CrossMultiplier = namedtuple("CrossMultiplier", ['attribute', 'atk'])
 
 class LSAttrCross(LeaderSkill):
