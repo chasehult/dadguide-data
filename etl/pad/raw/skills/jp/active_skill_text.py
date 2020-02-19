@@ -289,7 +289,7 @@ class JpASTextConverter(JpBaseTextConverter, BaseASTextConverter):
     def _line_change_convert(self, lines, index):
         skill_text = []
         # TODO: simplify this
-        lines = [(index[line.index], self.ATTRIBUTES[line.attr]) for line in lines]
+        lines = [(index[line.index], self.attributes_to_str(line.attrs)) for line in lines]
         skip = 0
         for c, line in enumerate(lines):
             if skip:
@@ -484,7 +484,7 @@ class JpASTextConverter(JpBaseTextConverter, BaseASTextConverter):
     def change_monster(self, act):
         return "[{}]に変身する".format(act.change_to)
 
-    def lock_skyfall(self, act):
+    def skyfall_lock(self, act):
         return "{}ターンの間、{}ドロップがロック状態で落ちてくる" \
                         .format(act.duration, self.attributes_to_str(act.orbs))
 
