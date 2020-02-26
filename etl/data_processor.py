@@ -146,7 +146,7 @@ def load_data(args):
 
     # Ensure tags
     SkillTagProcessor().process(db_wrapper)
-    """
+
     # Load enemy skills
     es_processor = EnemySkillProcessor(db_wrapper, cs_database)
     es_processor.load_static()
@@ -176,7 +176,7 @@ def load_data(args):
 
     # Toggle any newly-available dungeons visible
     dungeon_processor.post_encounter_process(db_wrapper)
-    """
+    
     # Load event data
     ScheduleProcessor(cs_database).process(db_wrapper)
 
