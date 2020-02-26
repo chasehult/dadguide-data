@@ -73,6 +73,8 @@ pull_and_write_endpoint(api_client, pad_api.EndpointAction.DOWNLOAD_DUNGEON_DATA
 pull_and_write_endpoint(api_client, pad_api.EndpointAction.DOWNLOAD_SKILL_DATA)
 pull_and_write_endpoint(api_client, pad_api.EndpointAction.DOWNLOAD_ENEMY_SKILL_DATA)
 pull_and_write_endpoint(api_client, pad_api.EndpointAction.DOWNLOAD_MONSTER_EXCHANGE)
+pull_and_write_endpoint(api_client, pad_api.EndpointAction.DOWNLOAD_MONSTER_PURCHASE)
+
 
 api_client.load_player_data()
 player_data = api_client.player_data

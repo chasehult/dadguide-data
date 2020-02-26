@@ -74,6 +74,7 @@ class EndpointAction(Enum):
     GET_PLAYER_DATA = EndpointActionInfo('get_player_data', 'v', 2)
     GET_RECOMMENDED_HELPERS = EndpointActionInfo('get_recommended_helpers', None, None)
     DOWNLOAD_MONSTER_EXCHANGE = EndpointActionInfo('mdatadl', None, None, dtp=0)
+    DOWNLOAD_MONSTER_PURCHASE = EndpointActionInfo('shop_item', None, None, dtp=0)
     SAVE_DECKS = EndpointActionInfo('save_decks', None, None, curdeck=0)
 
 
