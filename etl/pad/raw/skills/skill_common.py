@@ -28,7 +28,6 @@ def multi_getattr(o, *args):
             return v
     raise Exception('Attributs not found:' + str(args))
 
-def minmax(nmin, nmax, p = False, fmt = False):
 
 @public
 def minmax(nmin, nmax, p=False, fmt=False):
