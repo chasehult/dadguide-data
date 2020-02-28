@@ -55,7 +55,7 @@ class Purchase(SimpleSqlItem):
         return [self._key()]
 
     def _lookup_columns(self):
-        return ['purchase_id', 'server_id']
+        return ['server_id', 'target_monster_id']
 
     def __str__(self):
         return 'Purchase ({}): {} <- {:,d}MP'.format(self.server_id, self.target_monster_id, self.mp_cost)
