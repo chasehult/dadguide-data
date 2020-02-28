@@ -10,7 +10,7 @@ class Purchase(SimpleSqlItem):
     KEY_COL = 'purchase_id'
 
     @staticmethod
-    def from_raw_purchase(o):
+    def from_raw_purchase(o: "Purchase"):
         if o.server == Server.jp:
             id_mapper = jp_no_to_monster_id
         else:
@@ -39,6 +39,7 @@ class Purchase(SimpleSqlItem):
         self.server_id = server_id
         self.target_monster_id = target_monster_id
         self.mp_cost = mp_cost
+        self.amount = amount
         self.start_timestamp = start_timestamp
         self.end_timestamp = end_timestamp
         self.permanent = permanent

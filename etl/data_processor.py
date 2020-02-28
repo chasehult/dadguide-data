@@ -7,6 +7,7 @@ import argparse
 import json
 import logging
 import os
+import time
 
 from pad.common.shared_types import Server
 from pad.db.db_util import DbWrapper
@@ -35,6 +36,9 @@ logger.setLevel(logging.INFO)
 
 fail_logger = logging.getLogger('processor_failures')
 fail_logger.setLevel(logging.INFO)
+
+io_logger = logging.getLogger('io')
+io_logger.setLevel(logging.INFO)
 
 db_logger = logging.getLogger('database')
 db_logger.setLevel(logging.INFO)
@@ -148,37 +152,58 @@ def load_data(args):
     SkillTagProcessor().process(db_wrapper)
 
     # Load enemy skills
-    es_processor = EnemySkillProcessor(db_wrapper, cs_database)
-    es_processor.load_static()
-    es_processor.load_enemy_skills()
-    if args.es_dir:
-        es_processor.load_enemy_data(args.es_dir)
+    try:
+        es_processor = EnemySkillProcessor(db_wrapper, cs_database)
+        es_processor.load_static()
+        es_processor.load_enemy_skills()
+        if args.es_dir:
+            es_processor.load_enemy_data(args.es_dir)
+    except KeyboardInterrupt:
+        io_logger.info("Skipping...")
+        time.sleep(.2)
+        io_logger.info("Skipped")
 
-    # Load basic series data
-    series_processor = SeriesProcessor(cs_database)
-    series_processor.pre_process(db_wrapper)
+    try:
+        # Load basic series data
+        series_processor = SeriesProcessor(cs_database)
+        series_processor.pre_process(db_wrapper)
 
-    # Load monster data
-    MonsterProcessor(cs_database).process(db_wrapper)
+        # Load monster data
+        MonsterProcessor(cs_database).process(db_wrapper)
 
-    # Auto-assign monster series
-    series_processor.post_process(db_wrapper)
+        # Auto-assign monster series
+        series_processor.post_process(db_wrapper)
+    except KeyboardInterrupt:
+        io_logger.info("Skipping...")
+        time.sleep(.2)
+        io_logger.info("Skipped")
 
     # Egg machines
     EggMachineProcessor(cs_database).process(db_wrapper)
 
-    # Load dungeon data
-    dungeon_processor = DungeonProcessor(cs_database)
-    dungeon_processor.process(db_wrapper)
-    if not args.skip_long:
-        # Load dungeon data derived from wave info
-        DungeonContentProcessor(cs_database).process(db_wrapper)
+    try:
+        # Load dungeon data
+        dungeon_processor = DungeonProcessor(cs_database)
+        dungeon_processor.process(db_wrapper)
+        if not args.skip_long:
+            # Load dungeon data derived from wave info
+            DungeonContentProcessor(cs_database).process(db_wrapper)
 
-    # Toggle any newly-available dungeons visible
-    dungeon_processor.post_encounter_process(db_wrapper)
-    
+        # Toggle any newly-available dungeons visible
+        dungeon_processor.post_encounter_process(db_wrapper)
+    except KeyboardInterrupt:
+        io_logger.info("Skipping...")
+        time.sleep(.2)
+        io_logger.info("Skipped")
+
     # Load event data
-    ScheduleProcessor(cs_database).process(db_wrapper)
+    try:
+        ScheduleProcessor(cs_database).process(db_wrapper)
+    except KeyboardInterrupt:
+        io_logger.info("Skipping...")
+        time.sleep(.2)
+        io_logger.info("Skipped")
+    logger.info("Done Scheduling")
 
     # Load exchange data
     ExchangeProcessor(cs_database).process(db_wrapper)
