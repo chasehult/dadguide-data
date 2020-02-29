@@ -4,6 +4,7 @@ import os
 from pad.db.db_util import DbWrapper
 from pad.common.shared_types import Server
 from pad.storage.purchase import Purchase
+from pad.storage.monster import MonsterWithMPValue
 from pad.raw_processor import crossed_data
 
 logger = logging.getLogger('processor')
@@ -22,4 +23,11 @@ class PurchaseProcessor(object):
             for raw in purchase_map:
                 logger.debug('Creating purchase: %s', raw)
                 item = Purchase.from_raw_purchase(raw)
+                db.insert_or_update(item)
+
+    def process_monsters(self, db: DbWrapper):
+        for server, purchase_map in self.purchase_data.items():
+            for raw in purchase_map:
+                pdata = Purchase.from_raw_purchase(raw)
+                item = MonsterWithMPValue(monster_id=pdata.target_monster_id, buy_mp = pdata.mp_cost)
                 db.insert_or_update(item)

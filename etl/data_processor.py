@@ -161,7 +161,6 @@ def load_data(args):
     except KeyboardInterrupt:
         io_logger.info("Skipping...")
         time.sleep(.2)
-        io_logger.info("Skipped")
 
     try:
         # Load basic series data
@@ -176,7 +175,6 @@ def load_data(args):
     except KeyboardInterrupt:
         io_logger.info("Skipping...")
         time.sleep(.2)
-        io_logger.info("Skipped")
 
     # Egg machines
     EggMachineProcessor(cs_database).process(db_wrapper)
@@ -194,7 +192,6 @@ def load_data(args):
     except KeyboardInterrupt:
         io_logger.info("Skipping...")
         time.sleep(.2)
-        io_logger.info("Skipped")
 
     # Load event data
     try:
@@ -202,14 +199,15 @@ def load_data(args):
     except KeyboardInterrupt:
         io_logger.info("Skipping...")
         time.sleep(.2)
-        io_logger.info("Skipped")
     logger.info("Done Scheduling")
 
     # Load exchange data
     ExchangeProcessor(cs_database).process(db_wrapper)
 
     # Load purchase data
-    PurchaseProcessor(cs_database).process(db_wrapper)
+    mp_processor = PurchaseProcessor(cs_database)
+    mp_processor.process(db_wrapper)
+    mp_processor.process_monsters(db_wrapper)
 
     # Update timestamps
     TimestampProcessor().process(db_wrapper)
