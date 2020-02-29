@@ -58,4 +58,4 @@ class Purchase(SimpleSqlItem):
         return ['server_id', 'target_monster_id']
 
     def __str__(self):
-        return 'Purchase ({}): {} <- {:,d}MP'.format(self.server_id, self.target_monster_id, self.mp_cost)
+        return 'Purchase ({}): {} - {:,d}MP'.format(self.server_id, self.target_monster_id, self.mp_cost)

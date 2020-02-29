@@ -245,7 +245,7 @@ class MonsterWithMPValue(SimpleSqlItem):
         self.tstamp = tstamp
 
     def __str__(self):
-        return 'Monster({}): {}'.format(self.key_value(), self.buy_mp)
+        return 'MonsterMP({}): {}'.format(self.key_value(), self.buy_mp)
 
 class ActiveSkill(SimpleSqlItem):
     """Monster active skill."""

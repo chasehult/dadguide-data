@@ -15,11 +15,6 @@ FILE_NAME = 'shop_item.json'
 class Purchase(Printable):
     """Buyable monsters."""
 
-    def __new__(cls, raw, server, tbegin, tend):
-        if str(raw[0]) != "P": # Either P (point purchase) or T (time interval)
-            return raw[1], raw[2]
-        return super(Purchase, cls).__new__(cls)
-
     def __init__(self, raw: List[str], server: Server, tbegin, tend):
         self.server = server
         self.start_time_str = tbegin
@@ -43,20 +38,6 @@ class Purchase(Printable):
     def __str__(self):
         return 'Purchase({} {} - {})'.format(self.server, self.monster_id, self.cost)
 
-    def __eq__(self, other):
-        return self.monster_id == other.monster_id
-
-    def __hash__(self):
-        return self.monster_id * 90237433
-
-    def sterilize(self):
-        return "{},{},{}".format(self.server.value, self.monster_id, self.cost)
-
-    @staticmethod
-    def unsterilize(sterilized):
-        sterilized=[int(val) for val in sterilized.split(',')]
-        return Purchase(['P', sterilized[1], sterilized[2], 1, None, 0, 0], Server(sterilized[0]))
-
 
 def load_data(server: Server, data_dir: str = None, json_file: str = None) -> List[Purchase]:
     """Load Card objects from PAD JSON file."""
@@ -64,9 +45,10 @@ def load_data(server: Server, data_dir: str = None, json_file: str = None) -> Li
     tdata = None, None
     mpbuys = []
     for item in filter(None, data_json['d'].split('\n')):
-        p = Purchase(item.split(','), server, *tdata)
-        if isinstance(p, tuple):
-            tdata = p
+        raw = item.split(',')
+        if raw[0] == 'T':
+            tdata = raw[1], raw[2]
         else:
+            p = Purchase(raw, server, *tdata)
             mpbuys.append(p)
-    return list(set(mpbuys))
+    return mpbuys # This will have a lot or repeats, but that shouldn't matter
