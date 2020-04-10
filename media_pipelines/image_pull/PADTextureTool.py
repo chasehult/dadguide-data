@@ -13,6 +13,8 @@
 #
 ################################################################################
 
+# @formatter:off
+
 from __future__ import (absolute_import, division, print_function)
 
 import argparse
@@ -443,7 +445,7 @@ def getSettingsFromCommandLine():
                                action=call(settings.setTrimmingEnabled, False))
     featuresGroup.add_argument("-nb", "--noblacken", nargs=0, help="By default, this script will \"blacken\" (i.e. set the red, green and blue channels to zero) any fully-transparent pixels of an image before exporting it. This reduces file size in a way that does not affect the quality of the image. Use this flag to disable automatic blackening.", action=call(settings.setBlackeningEnabled, False))
     featuresGroup.add_argument("--subtextures", nargs=0, help="Enables extracting monsters with multiple textures",
-                               action=call(settings.setSubtexturesEnabled, False))
+                               action=call(settings.setSubtexturesEnabled, True))
 
     helpGroup = parser.add_argument_group("Help")
     helpGroup.add_argument("-h", "--help", action="help",
@@ -505,14 +507,12 @@ def main():
         if not settings.subtexturesEnabled:
             if len(textures) > 1 or '000.PNG' in textures[0].name:
                 print("Skipping; subtextures not enabled")
-                inputFileWithoutExtension, _ = os.path.splitext(inputFilePath)
-                # Create a tag file that marks this as being animated. This is used elsewhere
-                # to determine if we need to extract a video.
-                Path(inputFileWithoutExtension + '.isanimated').touch()
                 exit()
 
         for texture in textures:
             outputFileName = getOutputFileName(texture.name)
+            if len(textures) > 1:
+                outputFileName = os.path.basename(inputFilePath) + '_' + outputFileName
 
             print("  Writing {} ({} x {})...".format(outputFileName, texture.width, texture.height))
             if texture.encoding in [PVRTC2BPP, PVRTC4BPP]:
