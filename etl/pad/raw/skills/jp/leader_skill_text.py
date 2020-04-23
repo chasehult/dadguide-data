@@ -4,6 +4,7 @@ import os
 
 from pad.raw.skills.skill_common import *
 from pad.raw.skills.jp.skill_common import *
+from pad.raw.skills.en.leader_skill_text import EnLSTextConverter as BaseLSTextConverter
 
 human_fix_logger = logging.getLogger('human_fix')
 
@@ -11,7 +12,7 @@ __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file
 SERIES = json.load(open(os.path.join(__location__, "../../../storage_processor/series.json")))
 
 
-class JpLSTextConverter(JpBaseTextConverter):
+class JpLSTextConverter(JpBaseTextConverter, BaseLSTextConverter):
     _COLLAB_MAP = {x['collab_id']: x['name_jp'] for x in SERIES if 'collab_id' in x}
     _GROUP_MAP = {
         0: 'ドット進化',

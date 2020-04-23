@@ -1717,6 +1717,20 @@ class LSGroupConditionalBoost(LeaderSkill):
         return converter.group_bonus_text(self)
 
 
+class LSColorComboBonusCombo(LeaderSkill):
+    skill_type = 206
+
+    def __init__(self, ms: MonsterSkill):
+        data = merge_defaults(ms.data, [0, 0, 0, 0, 0, 0, 0])
+        self.attributes = list_binary_con(data[:4])
+        self.min_combo = data[5]
+        self.bonus_combos = data[6]
+        super().__init__(206, ms)
+
+    def text(self, converter) -> str:
+        return converter.color_combo_bonus_combo_text(self)
+
+
 def convert(skill_list: List[MonsterSkill]):
     results = {}
     for s in skill_list:
@@ -1724,6 +1738,8 @@ def convert(skill_list: List[MonsterSkill]):
         ns = convert_skill(s)
         if ns:
             results[ns.skill_id] = ns
+        #elif ns is False:
+        #    print(s)
     # except Exception as ex:
     # human_fix_logger.warning('Failed to convert {} {}'.format(s.skill_type, ex))
 
@@ -1733,7 +1749,12 @@ def convert(skill_list: List[MonsterSkill]):
             continue
         for p_id in s.child_ids:
             if p_id not in results:
-                human_fix_logger.warning('failed to look up leader skill id:' + str(p_id))
+                lfs = "Unknown Skill"
+                for s in skill_list:
+                    if s.skill_id == p_id:
+                        lfs = s
+                        break
+                human_fix_logger.warning('failed to look up leader skill id: {} (E{})'.format(lfs, p_id))
                 continue
             p_skill = results[p_id]
             s.child_skills.append(p_skill)
@@ -1743,12 +1764,14 @@ def convert(skill_list: List[MonsterSkill]):
 # TODO: These ended up being 1:1, convert skill type to a class value, then
 # load this mapping dynamically via list of skill classes
 def convert_skill(s) -> Optional[LeaderSkill]:
+    if s.skill_type == 0:
+        return None
     d = {}
     for skill in ALL_LEADER_SKILLS:
         if skill.skill_type in d:
             raise ValueError('Unexpected duplicate skill_type: ' + str(skill.skill_type))
         d[skill.skill_type] = skill
-    return d.get(s.skill_type, lambda s: None)(s)
+    return d.get(s.skill_type, lambda s: False)(s)
 
 
 ALL_LEADER_SKILLS = [
@@ -1858,4 +1881,5 @@ ALL_LEADER_SKILLS = [
     LSRainbowBonusDamage,
     LSBlobBonusDamage,
     LSColorComboBonusDamage,
+    LSColorComboBonusCombo,
 ]
