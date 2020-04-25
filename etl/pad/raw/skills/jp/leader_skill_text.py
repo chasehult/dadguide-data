@@ -346,8 +346,8 @@ class JpLSTextConverter(JpBaseTextConverter):
         elif not ls.attributes:
             cond += '{}の{}コンボ以上'.format(self.fmt_multi_attr(list(set(ls.attributes))), ls.min_combo)
         else:
-            cond += '{amt}コンボ以上'.format(ls.min_combo)
-        return cond +
+            cond += '{}コンボ以上'.format(ls.min_combo)
+        return cond + "で{}コンボ加算".format(ls.bonus_combos)
 
     def full_text(self, text, tags=None):
         tags = tags or []
