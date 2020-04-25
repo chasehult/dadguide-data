@@ -324,6 +324,15 @@ class JpLSTextConverter(JpBaseTextConverter):
             skill_text = '{}の'.format(self.fmt_multi_attr(list(set(ls.attributes)))) + skill_text
         return skill_text+'。'
 
+    def color_combo_bonus_combo_text(self, ls):
+        if len(ls.attributes) and ls.attributes[1:] != ls.attributes[:-1]:
+            cond = '{}の同時攻擊'.format(self.fmt_multi_attr(list(set(ls.attributes))))
+        elif not ls.attributes:
+            cond += '{}の{}コンボ以上'.format(self.fmt_multi_attr(list(set(ls.attributes))), ls.min_combo)
+        else:
+            cond += '{amt}コンボ以上'.format(ls.min_combo)
+        return cond +
+
     def full_text(self, text, tags=None):
         tags = tags or []
         if isinstance(text, (str, type(None))):
