@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 import subprocess
 import time
 
@@ -8,6 +9,21 @@ from pad.common.shared_types import Server
 from pad.db import db_util
 from pad.raw.bonus import BonusType
 from pad.raw_processor import merged_database
+
+fail_logger = logging.getLogger('human_fix')
+fail_logger.disabled = True
+
+# Dungeons in this list should have twice the minimum wave count.
+# They just have too much variability to get by on a normal scrape size.
+EXTRA_RUN_DUNGEONS = [
+    110,  # Endless Corridors
+    1625,  # Ultimate Descended Rush
+    2660,  # Alt Ultimate Arena
+    4247,  # All Days (gems)
+    4267,  # Multiplayer UDR
+    4268,  # Multiplayer Endless Coridors
+    4269,  # Multiplayer Evo Rush (gems)
+]
 
 
 def parse_args():
@@ -22,6 +38,11 @@ def parse_args():
     input_group.add_argument("--group", required=True, help="guerrilla group (red/blue/green)")
     input_group.add_argument("--user_uuid", required=True, help="Account UUID")
     input_group.add_argument("--user_intid", required=True, help="Account code")
+
+    input_group.add_argument("--minimum_wave_count", default=60, type=int,
+                             help="Minimum stored wave count to skip loading wave data")
+    input_group.add_argument("--maximum_wave_age", default=90, type=int,
+                             help="Number of days before wave data becomes obsolete and needs to be reloaded")
 
     output_group = parser.add_argument_group("Output")
     output_group.add_argument("--doupdates", default=False,
@@ -55,22 +76,102 @@ def do_dungeon_load(args, dungeon_id, floor_id):
     print(str(p.stderr))
 
 
+CHECK_AGE_SQL = '''
+SELECT
+  SUM(CASE WHEN DATEDIFF(NOW(), pull_time) >= {age} THEN 1 ELSE 0 END) AS older,
+  SUM(CASE WHEN DATEDIFF(NOW(), pull_time) < {age} THEN 1 ELSE 0 END) AS newer
+FROM (
+    SELECT entry_id, pull_time
+    FROM dadguide.wave_data
+    WHERE dungeon_id={dungeon_id} AND floor_id={floor_id}
+    GROUP BY 1, 2
+) AS entry_id_pull_time
+'''
+
+MIGRATE_OLD_DATA_SQL = '''
+INSERT INTO dadguide_wave_backup.wave_data
+SELECT * FROM dadguide.wave_data
+WHERE dungeon_id={dungeon_id} AND floor_id={floor_id} AND DATEDIFF(NOW(), pull_time) >= {age};
+'''
+
+DELETE_OLD_DATA_SQL = '''
+DELETE FROM dadguide.wave_data
+WHERE dungeon_id={dungeon_id} AND floor_id={floor_id} AND DATEDIFF(NOW(), pull_time) >= {age};
+'''
+
+
 def load_dungeons(args, db_wrapper, current_dungeons):
+    """Scrapes data for all current dungeons.
+
+    If there is not enough 'new' data, we try to scrape data.
+    If we have an acceptable amount of data and we have 'old' data, migrate it
+    to a backup database and then purge it.
+
+    We only purge if we have an acceptable amount of new data to prevent us from
+    erasing useful data for dungeons we can't actually enter.
+    """
+
     for dungeon in current_dungeons:
         dungeon_id = dungeon.dungeon_id
-        print(dungeon.clean_name, dungeon_id)
+        print('processing', dungeon.clean_name, dungeon_id)
+
+        minimum_wave_count = args.minimum_wave_count
+        if dungeon_id in EXTRA_RUN_DUNGEONS:
+            print('variable dungeon, doubling the wave count')
+            minimum_wave_count *= 2
 
         for sub_dungeon in dungeon.sub_dungeons:
             floor_id = sub_dungeon.simple_sub_dungeon_id
-            sql = 'select count(distinct entry_id) from wave_data where dungeon_id={} and floor_id={}'.format(
-                dungeon_id, floor_id)
-            wave_count = db_wrapper.get_single_value(sql, op=int)
-            print(wave_count, 'entries for', floor_id)
-            if wave_count >= 20:
-                print('skipping')
-            else:
-                print('entering', dungeon_id, floor_id)
+
+            wave_info = db_wrapper.get_single_or_no_row(
+                CHECK_AGE_SQL.format(age=args.maximum_wave_age, dungeon_id=dungeon_id, floor_id=floor_id))
+            older_count = int(wave_info["older"] or 0)
+            newer_count = int(wave_info["newer"] or 0)
+
+            should_enter = newer_count < minimum_wave_count
+            print('entries for {} : old={} new={} entering={}'.format(floor_id, older_count, newer_count, should_enter))
+            if should_enter:
                 do_dungeon_load(args, dungeon_id, floor_id)
+
+            wave_info = db_wrapper.get_single_or_no_row(
+                CHECK_AGE_SQL.format(age=args.maximum_wave_age, dungeon_id=dungeon_id, floor_id=floor_id))
+            older_count = int(wave_info["older"] or 0)
+            newer_count = int(wave_info["newer"] or 0)
+
+            should_purge = older_count > 0 and newer_count >= minimum_wave_count
+            print('entries for {} : old={} new={} purging={}'.format(floor_id, older_count, newer_count, should_purge))
+
+            # This section cleans up 'old' data. We consider data to be out of date if approximately 3 months have
+            # passed. If we have the opportunity to scrape a dungeon (e.g. a collab) that comes back, we will. It will
+            # also ensure that the normal/technical data is up to date.
+            if should_purge:
+                try:
+                    db_wrapper.connection.autocommit(False)
+                    with db_wrapper.connection.cursor() as cursor:
+                        sql = MIGRATE_OLD_DATA_SQL.format(age=args.maximum_wave_age,
+                                                          dungeon_id=dungeon_id,
+                                                          floor_id=floor_id)
+                        db_wrapper.execute(cursor, sql)
+                        migrate_count = cursor.rowcount
+                        if migrate_count < older_count:  # The older_count is the number of entries, this is raw rows
+                            db_wrapper.connection.rollback()
+                            raise ValueError('wrong migrate count:', migrate_count, 'vs', older_count)
+
+                        sql = DELETE_OLD_DATA_SQL.format(age=args.maximum_wave_age,
+                                                         dungeon_id=dungeon_id,
+                                                         floor_id=floor_id)
+                        db_wrapper.execute(cursor, sql)
+                        delete_count = cursor.rowcount
+                        if delete_count != migrate_count:  # Compare what we migrated against what we deleted
+                            db_wrapper.connection.rollback()
+                            raise ValueError('wrong delete count:', delete_count, 'vs', migrate_count)
+
+                        db_wrapper.connection.commit()
+                        print('migration complete')
+                except Exception as ex:
+                    print('failed to migrate data:', ex)
+                finally:
+                    db_wrapper.connection.autocommit(True)
 
 
 def identify_dungeons(database, group):
@@ -101,8 +202,11 @@ def identify_dungeons(database, group):
             # Only check bonuses with dungeons
             continue
 
-        if bonus.bonus.bonus_info.bonus_type != BonusType.dungeon:
-            # Filter farther to just the actual dungeon entry
+        bonus_type = bonus.bonus.bonus_info.bonus_type
+        if bonus_type not in [
+            BonusType.dungeon,  # This is the actual dungeon for an active bonus
+            BonusType.tournament_active,  # This is an active ranking dungeon
+        ]:
             continue
 
         selected_dungeons.append(bonus.dungeon)
@@ -111,14 +215,7 @@ def identify_dungeons(database, group):
 
 
 def load_data(args):
-    if args.server == 'jp':
-        server = Server.jp
-    elif args.server == 'na':
-        server = Server.na
-    elif args.server == 'kr':
-        server = Server.kr
-    else:
-        raise ValueError('unexpected argument: ' + args.server)
+    server = Server.from_str(args.server)
 
     pad_db = merged_database.Database(server, args.input_dir)
     pad_db.load_database(skip_skills=True, skip_extra=True)

@@ -154,6 +154,10 @@ class EnESTextConverter(EnBaseTextConverter):
     def blind_sticky_fixed(self, turns):
         return 'Blind orbs in specific positions for {:s}'.format(pluralize2('turn', turns))
 
+    def blind_sticky_skyfall(self, turns, chance, b_turns):
+        return 'For {:s}, {}% chance for skyfall orbs to be blinded for {:s}'.format(
+            pluralize2('turn', turns), chance, pluralize2('turn', b_turns))
+
     def dispel_buffs(self):
         return 'Voids player buff effects'
 
@@ -239,6 +243,9 @@ class EnESTextConverter(EnBaseTextConverter):
     def resolve(self, percent):
         return 'Survive attacks with 1 HP when HP > {:d}%'.format(percent)
 
+    def superresolve(self, percent, remaining):
+        return 'When reduced from HP > {:d}% to 0 HP, revive at {:d}% HP'.format(percent, remaining)
+
     def leadswap(self, turns):
         return 'Leader changes to random sub for {:s}'.format(pluralize2('turn', turns))
 
@@ -258,8 +265,8 @@ class EnESTextConverter(EnBaseTextConverter):
         if count == 42:
             return self.board_change(attributes)
         else:
-            return 'Spawn {:d} random {:s} {:s}' \
-                .format(count, self.attributes_to_str(attributes, 'or'), pluralize('orb', count))
+            return 'Spawn {:d} random {:s} {:s}'.format(
+                count, self.attributes_to_str(attributes, 'and'), pluralize('orb', count))
 
     def fixed_orb_spawn(self, attributes):
         return 'Spawn {:s} orbs in the specified positions'.format(self.attributes_to_str(attributes))
@@ -356,6 +363,9 @@ class EnESTextConverter(EnBaseTextConverter):
 
     def no_skyfall(self, turns):
         return 'No skyfall for {:s}'.format(pluralize2('turn', turns))
+
+    def debuff_atk(self, turns, amount):
+        return 'ATK -{}% for {:s}'.format(amount, pluralize2('turn', turns))
 
     def branch(self, condition, compare, value, rnd):
         return 'Branch on {} {} {}, target rnd {}'.format(condition, compare, value, rnd)

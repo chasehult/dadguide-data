@@ -224,13 +224,6 @@
     "order_idx": 110
   },
   {
-    "active_tag_id": 120,
-    "name_jp": "ロック",
-    "name_kr": "잠금",
-    "name_na": "Lock",
-    "order_idx": 120
-  },
-  {
     "active_tag_id": 130,
     "name_jp": "ドロップリフレッシュ",
     "name_kr": "드롭 리프레쉬",
@@ -299,6 +292,13 @@
     "name_kr": "속성 흡수 무효화",
     "name_na": "Void Att. Absorbs",
     "order_idx": 250
+  },
+  {
+    "active_tag_id": 282,
+    "name_jp": "Pierce Damage Void",
+    "name_kr": "Pierce Damage Void",
+    "name_na": "Pierce Damage Void",
+    "order_idx": 255
   },
   {
     "active_tag_id": 260,

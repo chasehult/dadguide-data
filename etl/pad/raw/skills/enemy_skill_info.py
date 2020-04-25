@@ -615,6 +615,19 @@ class ESBlindStickyFixed(ESAction):
         return converter.blind_sticky_fixed(self.turns)
 
 
+class ESBlindStickySkyfall(ESAction):
+    skill_types = [128]
+
+    def __init__(self, skill: EnemySkill):
+        super().__init__(skill)
+        self.turns = self.params[1]
+        self.chance = self.params[2]
+        self.b_turns = self.params[13]  # For some reason?? (why?)
+
+    def description(self, converter):
+        return converter.blind_sticky_skyfall(self.turns, self.chance, self.b_turns)
+
+
 class ESDispel(ESAction):
     skill_types = [6]
 
@@ -778,6 +791,18 @@ class ESDebuffRCV(ESDebuff):
 
     def description(self, converter):
         return converter.debuff(self.debuff_type, self.amount, self.unit, self.turns)
+
+
+class ESDebuffATK(ESAction):
+    skill_types = [130]
+
+    def __init__(self, skill: EnemySkill):
+        super().__init__(skill)
+        self.turns = self.params[1]
+        self.amount = self.params[2]
+
+    def description(self, converter):
+        return converter.debuff_atk(self.turns, self.amount)
 
 
 class ESEndBattle(ESAction):
@@ -1394,6 +1419,18 @@ class ESResolve(ESPassive):
         return converter.resolve(self.hp_threshold)
 
 
+class ESSuperResolve(ESPassive):
+    skill_types = [129]
+
+    def __init__(self, skill: EnemySkill):
+        super().__init__(skill)
+        self.hp_threshold = self.params[1]
+        self.hp_remaining = self.params[2]
+
+    def description(self, converter):
+        return converter.superresolve(self.hp_threshold, self.hp_remaining)
+
+
 class ESTurnChangeRemainingEnemies(ESPassive):
     skill_types = [122]
 
@@ -1650,9 +1687,8 @@ class ESCountdownMessage(ESBehavior):
         return converter.countdown(self.current_counter)
 
 
-class ESUnknown(ESBehavior):
-    def __init__(self, skill: EnemySkill):
-        super().__init__(skill)
+class ESUnknown(ESAction):  # Pretend to work so we can extract data
+    """Unknown ES (Unknown skill type)"""
 
 
 class ESInstance(Printable):
@@ -1827,10 +1863,13 @@ ENEMY_SKILLS = [
     ESTurnChangePassive,
     ESTurnChangeRemainingEnemies,
     ESTypeResist,
+    ESDebuffATK,
+    ESSuperResolve,
+    ESBlindStickySkyfall,
 ]
 
 BEHAVIOR_MAP = {t: s for s in ENEMY_SKILLS for t in s.skill_types}
 BEHAVIOR_MAP[0] = ESNone
 BEHAVIOR_MAP[9] = ESUnknown
-BEHAVIOR_MAP[93] = ESNone  # FF Animation
 BEHAVIOR_MAP[21] = ESUnknown
+BEHAVIOR_MAP[93] = ESNone  # FF Animation

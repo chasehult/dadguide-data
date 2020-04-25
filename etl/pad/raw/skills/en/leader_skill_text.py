@@ -13,7 +13,12 @@ SERIES = json.load(open(os.path.join(__location__, "../../../storage_processor/s
 
 class EnLSTextConverter(EnBaseTextConverter):
     _COLLAB_MAP = {x['collab_id']: x['name_na'] for x in SERIES if 'collab_id' in x}
-    _GROUP_MAP = {0: 'Pixel Evolutions'}
+    _GROUP_MAP = {
+        0: 'Pixel Evolutions',
+        1: 'Super Reincarnated Evolutions',
+        2: 'Reincarnated or Super Reincarnated Evolutions',
+    }
+
     TAGS = {
         Tag.NO_SKYFALL: '[No skyfall]',
         Tag.DISABLE_POISON: '[Disable Poison & Mortal Poison orb effects]',
@@ -275,7 +280,7 @@ class EnLSTextConverter(EnBaseTextConverter):
             skill_text += '; '
         skill_text += '{}x ATK when there are {} or fewer orbs remaining'.format(fmt_mult(ls.base_atk), ls.orb_count)
         if ls.bonus_atk != 0:
-            skill_text += ' up to {}x ATK when 0 orbs left'.format(fmt_mult(ls.atk))
+            skill_text += ' up to {}x ATK when 0 orbs left'.format(fmt_mult(ls.max_bonus_atk))
         return skill_text
 
     def multi_mass_match_text(self, ls):
@@ -332,11 +337,29 @@ class EnLSTextConverter(EnBaseTextConverter):
         return skill_text
 
     def color_combo_bonus_damage_text(self, ls):
-        skill_text = '{} additional damage when attacking with {} or more'.format(ls.bonus_damage, ls.min_combo)
-        if ls.attributes:
-            skill_text += ' {} combos'.format(self.fmt_multi_attr(list(set(ls.attributes))))
+        if len(ls.attributes) and ls.attributes[1:] != ls.attributes[:-1]:
+            skill_text = '{} additional damage when matching {}'.format(ls.bonus_damage,
+                                                                        self.fmt_multi_attr(list(set(ls.attributes)),
+                                                                                            conj='and'))
         else:
-            skill_text += ' combos'
+            skill_text = '{} additional damage when matching {} or more'.format(ls.bonus_damage, ls.min_combo)
+            if ls.attributes:
+                skill_text += ' {} combos'.format(self.fmt_multi_attr(list(set(ls.attributes))))
+            else:
+                skill_text += ' combos'
+        return skill_text
+
+    def color_combo_bonus_combo_text(self, ls):
+        if len(ls.attributes) and ls.attributes[1:] != ls.attributes[:-1]:
+            skill_text = 'Increase combo by {} when matching {}'.format(ls.bonus_combos,
+                                                                        self.fmt_multi_attr(list(set(ls.attributes)),
+                                                                                            conj='and'))
+        else:
+            skill_text = 'Increase combo by {} when matching {} or more'.format(ls.bonus_combos, ls.min_combo)
+            if ls.attributes:
+                skill_text += ' {} combos'.format(self.fmt_multi_attr(list(set(ls.attributes))))
+            else:
+                skill_text += ' combos'
         return skill_text
 
     def full_text(self, text, tags=None):

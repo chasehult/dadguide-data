@@ -28,8 +28,11 @@ class EnASTextConverter(EnBaseTextConverter):
     def fmt_mass_atk(self, mass_attack):
         return 'all enemies' if mass_attack else 'an enemy'
 
-    def fmt_duration(self, duration):
-        return 'For {:s}, '.format(pluralize2('turn', duration))
+    def fmt_duration(self, duration, max_duration=None):
+        if max_duration and duration != max_duration:
+            return 'For {}~{:s}, '.format(duration, pluralize2('turn', max_duration))
+        else:
+            return 'For {:s}, '.format(pluralize2('turn', duration))
 
     def attr_nuke_convert(self, act):
         return 'Deal ' + fmt_mult(act.multiplier) + 'x ATK ' + self.ATTRIBUTES[int(
@@ -156,10 +159,10 @@ class EnASTextConverter(EnBaseTextConverter):
 
     def lock_convert(self, act):
         for_attr = act.orbs
-
-        color_text = 'all' if len(for_attr) == 10 else self.concat_list_and(
-            [self.ATTRIBUTES[i] for i in for_attr])
-        return 'Lock ' + color_text + ' orbs'
+        amount_text = 'all' if act.count >= 42 else str(act.count)
+        color_text = '' if len(for_attr) == 10 else self.attributes_to_str(for_attr)
+        result = 'Lock {} {} orbs'.format(amount_text, color_text)
+        return ' '.join(result.split())
 
     def laser_convert(self, act):
         return 'Deal ' + str(act.damage) + \
@@ -291,7 +294,7 @@ class EnASTextConverter(EnBaseTextConverter):
     def _line_change_convert(self, lines, index):
         skill_text = []
         # TODO: simplify this
-        lines = [(index[int(line['index'])], self.ATTRIBUTES[int(line['orbs'][0])]) for line in lines]
+        lines = [(index[line.index], self.attributes_to_str(line.attrs)) for line in lines]
         skip = 0
         for c, line in enumerate(lines):
             if skip:
@@ -308,7 +311,7 @@ class EnASTextConverter(EnBaseTextConverter):
         return capitalize_first(' and '.join(skill_text))
 
     def change_skyfall_convert(self, act):
-        skill_text = self.fmt_duration(act.duration)
+        skill_text = self.fmt_duration(act.duration, act.max_duration)
         rate = fmt_mult(act.percentage * 100)
 
         if rate == '100':
@@ -408,12 +411,12 @@ class EnASTextConverter(EnBaseTextConverter):
 
         board_repr = []
         for row in board:
-            board_repr.append(''.join(['0' if n in row else 'X' 
+            board_repr.append(''.join(['0' if n in row else 'X'
                                        for n in range(6)]))
         board_repr = '\n'.join(board_repr)
-         
+
         skill_text = ''
-        if orb_count == 0 or set(sum(board,[])) - {0,1,2,3,4,5}:
+        if orb_count == 0 or set(sum(board, [])) - {0, 1, 2, 3, 4, 5}:
             return ''
         if orb_count == 4:
             if len(board[0]) == len(board[4]) == 2:
@@ -464,7 +467,8 @@ class EnASTextConverter(EnBaseTextConverter):
                 return 'Create a 7-shape of {} orbs in the upper right corner'.format(self.ATTRIBUTES[act.attribute])
         if orb_count == 6:
             if board == [[0, 1, 2], [0, 1, 2], [], [], []]:
-                return 'Create a 3x2 rectangle of {} orbs in the upper left corner'.format(self.ATTRIBUTES[act.attribute])
+                return 'Create a 3x2 rectangle of {} orbs in the upper left corner'.format(
+                    self.ATTRIBUTES[act.attribute])
 
         if orb_count == 18:
             if len(board[0]) == len(board[4]) == len(board[1]) + len(board[2]) + len(board[3]) == 6:
@@ -481,7 +485,9 @@ class EnASTextConverter(EnBaseTextConverter):
                                                                                          COLUMN_INDEX[entry[2]])
 
         if not skill_text:
-            human_fix_logger.error('Unknown board shape in {} ({}):\n{} \n{}'.format(act.name, act.skill_id, act.raw_description, board_repr))
+            human_fix_logger.error(
+                'Unknown board shape in {} ({}):\n{} \n{}'.format(
+                    act.name, act.skill_id, act.raw_description, board_repr))
 
         return skill_text
 
@@ -509,7 +515,12 @@ class EnASTextConverter(EnBaseTextConverter):
     def change_monster(self, act):
         return "Changes to [{}] for the duration of the dungeon".format(act.change_to)
 
+    def skyfall_lock(self, act):
+        attrs = self.attributes_to_str(act.orbs) if act.orbs else 'all'
+        return self.fmt_duration(act.duration) + attrs + " orbs appear locked"
+
     def two_part_active(self, strs):
         return '; '.join(strs)
+
 
 __all__ = ['EnASTextConverter']

@@ -68,9 +68,9 @@ class Card(pad_util.Printable):
         self.unknown_009 = int(raw[9])
 
         self.max_level = int(raw[10])
-        self.feed_xp_per_level = int(raw[11]) // 4
+        self.feed_xp_per_level = int(raw[11]) / 4
         self.released_status = raw[12] == 100
-        self.sell_gold_per_level = int(raw[13]) // 10
+        self.sell_gold_per_level = int(raw[13]) / 10
 
         self.min_hp = int(raw[14])
         self.max_hp = int(raw[15])
@@ -107,8 +107,8 @@ class Card(pad_util.Printable):
         self.enemy_def_scale = float(raw[36])
 
         self.enemy_max_level = int(raw[37])
-        self.enemy_coins_per_level = int(raw[38]) // 2
-        self.enemy_xp_per_level = int(raw[39]) // 2
+        self.enemy_coins_per_level = int(raw[38]) / 2
+        self.enemy_xp_per_level = int(raw[39]) / 2
 
         self.ancestor_id = MonsterNo(int(raw[40]))
 
@@ -174,15 +174,20 @@ class Card(pad_util.Printable):
         self.latent_on_feed = int(raw[64])
         self.collab_id = int(raw[65])
 
-        # Bitmap with some random flag values, not sure what they all do.
-        self.random_flags = int(raw[66])
-        self.inheritable = bool(self.random_flags & 1)
-        self.unknown_flagx2 = bool(self.random_flags & 2)
-        self.is_collab = bool(self.random_flags & 4)
-        self.is_stackable = not bool(self.random_flags & 8) and self.type_1_id in [0, 12, 14]
-        self.assist_only = bool(self.random_flags & 16)
-        self.usable = not self.assist_only and self.monster_no < 100000
-        self.latent_slot_unlock = bool(self.random_flags & 32)
+        # Bitmap with some non-random flag values
+        self.flags = int(raw[66])
+        self.inheritable_flag = bool(self.flags & 1)
+        self.take_assists_flag = bool(self.flags & 2)
+        self.is_collab_flag = bool(self.flags & 4)
+        self.unstackable_flag = bool(self.flags & 8)
+        self.assist_only_flag = bool(self.flags & 16)
+        self.latent_slot_unlock_flag = bool(self.flags & 32)
+
+        # Composed with flags and other monster attributes
+        self.inheritable = bool(self.inheritable_flag and self.active_skill_id)
+        self.take_assists = bool(self.take_assists_flag and self.active_skill_id)
+        self.is_stackable = bool(not self.unstackable_flag and self.type_1_id in [0, 12, 14])
+        self.usable = bool(not self.assist_only_flag and self.monster_no < 100000)
 
         self.furigana = str(raw[67])  # JP data only?
         self.limit_mult = int(raw[68])

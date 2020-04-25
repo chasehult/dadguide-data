@@ -1,7 +1,7 @@
 import logging
-from typing import List, Optional
-from functools import reduce
 from collections import namedtuple
+from functools import reduce
+from typing import Optional
 
 from pad.raw.skill import MonsterSkill
 from pad.raw.skills.en.skill_common import *
@@ -13,7 +13,7 @@ class LeaderSkill(object):
     skill_type = -1
 
     def __init__(self, skill_type: int, ms: MonsterSkill,
-                 hp: float = 1, atk: float = 1, rcv: float = 1, shield: float = 0):
+                 hp: float = 1, atk: float = 1, rcv: float = 1, shield: float = 0, extra_combos: int = 0):
         if skill_type != ms.skill_type:
             raise ValueError('Expected {} but got {}'.format(skill_type, ms.skill_type))
         self.skill_id = ms.skill_id
@@ -25,6 +25,7 @@ class LeaderSkill(object):
         self._atk = round(atk, 2)
         self._rcv = round(rcv, 2)
         self._shield = round(shield, 2)
+        self._extra_combos = extra_combos
 
     @property
     def hp(self):
@@ -41,6 +42,10 @@ class LeaderSkill(object):
     @property
     def shield(self):
         return self._shield
+
+    @property
+    def extra_combos(self):
+        return self._extra_combos
 
     @property
     def parts(self):
@@ -1098,6 +1103,10 @@ class LSMultiPartSkill(LeaderSkill):
         return round(v, 2)
 
     @property
+    def extra_combos(self):
+        return sum([x.extra_combos for x in self.child_skills])
+
+    @property
     def parts(self):
         return self.child_skills
 
@@ -1203,7 +1212,9 @@ class LSMultiboost(LeaderSkill):
     def text(self, converter) -> str:
         return converter.multi_play_text(self)
 
+
 CrossMultiplier = namedtuple("CrossMultiplier", ['attribute', 'atk'])
+
 
 class LSAttrCross(LeaderSkill):
     skill_type = 157
@@ -1216,9 +1227,9 @@ class LSAttrCross(LeaderSkill):
         self.multiplier = mult(ms.data[1])
         self.attributes = ms.data[::2]
 
-        self.crossmults = [CrossMultiplier(ms.data[i], ms.data[i+1]) for i in range(0,len(ms.data),2)]
+        self.crossmults = [CrossMultiplier(ms.data[i], ms.data[i + 1]) for i in range(0, len(ms.data), 2)]
 
-        atk = self.multiplier ** (2 if len(self.attributes)==1 else 3)
+        atk = self.multiplier ** (2 if len(self.attributes) == 1 else 3)
         super().__init__(157, ms, atk=round(atk, 2))
 
     def text(self, converter) -> str:
@@ -1461,10 +1472,11 @@ class LSOrbRemainingMultiplier(LeaderSkill):
         self.min_atk = multi_floor(data[3])
         self.base_atk = mult(data[6])
         self.bonus_atk = mult(data[7])
+        self.max_bonus_atk = self.base_atk + (self.bonus_atk * self.orb_count)
         self.tags = [(Tag.NO_SKYFALL, ())]
         hp = multi_floor(data[2])
         rcv = multi_floor(data[4])
-        atk = self.min_atk * (self.base_atk + (self.bonus_atk * self.orb_count))
+        atk = self.min_atk * self.max_bonus_atk
         super().__init__(177, ms, hp=hp, atk=atk, rcv=rcv)
 
     def text(self, converter) -> str:
@@ -1485,11 +1497,8 @@ class LSFixedMovementTime(LeaderSkill):
         if self.time == 0:
             # Ignore this case; bad skill
             pass
-        elif self.time in [3, 4, 5, 6]:
-            self.tags.append((Tag.FIXED_TIME, self.time))
-        else:
-            human_fix_logger.warning('Unexpected fixed time:' + str(self.time))
-            self.tags.append((Tag.FIXED_TIME, self.time))
+
+        self.tags.append((Tag.FIXED_TIME, self.time))
 
         hp = multi_floor(data[3])
         atk = multi_floor(data[4])
@@ -1589,7 +1598,7 @@ class LSBlobMatchBonusCombo(LeaderSkill):
         self.min_match = data[1]
         self.bonus_combo = data[3]
         atk = multi_floor(data[2])
-        super().__init__(192, ms, atk=atk)
+        super().__init__(192, ms, atk=atk, extra_combos=self.bonus_combo)
 
     def text(self, converter) -> str:
         return converter.multi_mass_match_text(self)
@@ -1619,7 +1628,7 @@ class LSAttrMatchBonusCombo(LeaderSkill):
         self.min_attr = data[1]
         self.bonus_combo = data[3]
         atk = multi_floor(data[2])
-        super().__init__(194, ms, atk=atk)
+        super().__init__(194, ms, atk=atk, extra_combos=self.bonus_combo)
 
     def text(self, converter) -> str:
         return converter.add_combo_att_text(self)
@@ -1708,6 +1717,20 @@ class LSGroupConditionalBoost(LeaderSkill):
         return converter.group_bonus_text(self)
 
 
+class LSColorComboBonusCombo(LeaderSkill):
+    skill_type = 206
+
+    def __init__(self, ms: MonsterSkill):
+        data = merge_defaults(ms.data, [0, 0, 0, 0, 0, 0, 0])
+        self.attributes = list_binary_con(data[:4])
+        self.min_combo = data[5]
+        self.bonus_combos = data[6]
+        super().__init__(206, ms, extra_combos=self.bonus_combos)
+
+    def text(self, converter) -> str:
+        return converter.color_combo_bonus_combo_text(self)
+
+
 def convert(skill_list: List[MonsterSkill]):
     results = {}
     for s in skill_list:
@@ -1724,7 +1747,7 @@ def convert(skill_list: List[MonsterSkill]):
             continue
         for p_id in s.child_ids:
             if p_id not in results:
-                human_fix_logger.warning('failed to look up skill id:' + str(p_id))
+                human_fix_logger.warning('failed to look up leader skill id:' + str(p_id))
                 continue
             p_skill = results[p_id]
             s.child_skills.append(p_skill)
@@ -1849,4 +1872,5 @@ ALL_LEADER_SKILLS = [
     LSRainbowBonusDamage,
     LSBlobBonusDamage,
     LSColorComboBonusDamage,
+    LSColorComboBonusCombo,
 ]

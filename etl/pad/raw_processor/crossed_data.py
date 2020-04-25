@@ -45,6 +45,7 @@ class CrossServerCard(object):
                                                                kr_card.enemy_skills)
         self.gem = None
 
+
 def build_cross_server_cards(jp_database, na_database, kr_database) -> List[CrossServerCard]:
     all_monster_ids = set(jp_database.monster_id_to_card.keys())
     all_monster_ids.update(na_database.monster_id_to_card.keys())
@@ -68,13 +69,13 @@ def build_cross_server_cards(jp_database, na_database, kr_database) -> List[Cros
     jp_gems = {}
     na_gems = {}
     for card in combined_cards[4468:]:
-        if card.jp_card.card.name.endswith('の希石') or\
-           card.na_card.card.name.endswith("'s Gem"):
+        if card.jp_card.card.name.endswith('の希石') or \
+                card.na_card.card.name.endswith("'s Gem"):
             jp_gems[card.jp_card.card.name[:-3]] = card
             na_gems[card.na_card.card.name[:-6]] = card
 
     for card in combined_cards:
-        card.gem = jp_gems.get(card.jp_card.card.name) or\
+        card.gem = jp_gems.get(card.jp_card.card.name) or \
                    na_gems.get(card.na_card.card.name)
         if card.gem:
             for jc in jp_gems:
@@ -84,12 +85,12 @@ def build_cross_server_cards(jp_database, na_database, kr_database) -> List[Cros
             for nc in na_gems:
                 if na_gems[nc] == card.gem:
                     na_gems.pop(nc)
-                    break 
-                    
+                    break
+
     jp_gems.update(na_gems)
     aggreg = jp_gems.keys()
     if aggreg:
-        human_fix_logger.warning("Unassigned Gem(s): "+', '.join(aggreg))
+        human_fix_logger.warning("Unassigned Gem(s): " + ', '.join(aggreg))
 
     return combined_cards
 
@@ -142,6 +143,11 @@ def make_cross_server_card(jp_card: MergedCard,
     jp_card = override_if_necessary(na_card, jp_card)
     kr_card = override_if_necessary(na_card, kr_card)
 
+    # What the hell gungho. This showed up (104955) only in Korea.
+    if kr_card is not None and na_card is None and jp_card is None:
+        jp_card = kr_card
+        na_card = kr_card
+
     if is_bad_name(jp_card.card.name):
         # This is a debug monster, or not yet supported
         return None, 'Debug monster'
@@ -160,6 +166,9 @@ class CrossServerESInstance(object):
         self.jp_skill = jp_skill
         self.na_skill = na_skill
         self.kr_skill = kr_skill
+
+    def unique_count(self):
+        return len({map(id, [self.jp_skill, self.na_skill, self.kr_skill])})
 
 
 def make_cross_server_enemy_behavior(jp_skills: List[ESInstance],
@@ -202,8 +211,11 @@ def _combine_es(jp_skills: List[ESInstance],
     results = []
     for idx, jp_skill in enumerate(jp_skills):
         if isinstance(jp_skill.behavior, ESUnknown):
-            human_fix_logger.error('Detected an in-use unknown enemy skill: %d/%d: %s',
-                                   jp_skill.enemy_skill_id, jp_skill.behavior.type, jp_skill.behavior.name)
+            human_fix_logger.error('Detected an in-use unknown enemy skill: %d/%d: %s - %s',
+                                   jp_skill.enemy_skill_id,
+                                   jp_skill.behavior.type,
+                                   jp_skill.behavior.name,
+                                   jp_skill.behavior.params)
         results.append(CrossServerESInstance(jp_skill, na_skills[idx], kr_skills[idx]))
     return results
 
@@ -433,9 +445,9 @@ class CrossServerDatabase(object):
         self.na_egg_machines = na_database.egg_machines
         self.kr_egg_machines = kr_database.egg_machines
 
-        self.jp_exchange = jp_database.exchange
-        self.na_exchange = na_database.exchange
-        self.kr_exchange = kr_database.exchange
+        self.jp_purchase = jp_database.purchase
+        self.na_purchase = na_database.purchase
+        self.kr_purchase = kr_database.purchase
 
         self.monster_id_to_card = {c.monster_id: c for c in self.all_cards}
         self.leader_id_to_leader = {s.skill_id: s for s in self.leader_skills}

@@ -27,23 +27,30 @@ RESPONSE_CODES = {
     8: 'dungeon not open',
     12: 'That person has too many friends.',
     25: 'Too many friend invites.',
+    40: 'Cannot open dungeon due to corrupted data',
+    44: 'No score to rank',
     48: 'room not found?',
+    53: 'wrong version (update needed)',
     99: 'Maintenance',
     101: 'No connection',
     104: "Can't connect to server?",
-    108: "???",
+    108: '???',
+    602: 'room not found',
 }
 
 
 class ServerEndpointInfo(object):
-    def __init__(self, server: Server, keygen_fn: Callable[[str, int], str]):
+    def __init__(self, server: Server, keygen_fn: Callable[[str, int], str], force_v=None):
         self.server = server
         self.keygen_fn = keygen_fn
+
+        # Gungho messed up the version in the JSON so allowing an override.
+        self.force_v = force_v
 
 
 class ServerEndpoint(Enum):
     NA = ServerEndpointInfo(
-        Server('http://patch-na-pad.gungho.jp/base-na-adr.json'), keygen.generate_key_na)
+        Server('http://patch-na-pad.gungho.jp/base-na-adr.json'), keygen.generate_key_na, force_v='18.20')
     JA = ServerEndpointInfo(
         Server('http://dl.padsv.gungho.jp/base_adr.json'), keygen.generate_key_jp)
     KR = ServerEndpointInfo(
@@ -74,6 +81,7 @@ class EndpointAction(Enum):
     GET_PLAYER_DATA = EndpointActionInfo('get_player_data', 'v', 2)
     GET_RECOMMENDED_HELPERS = EndpointActionInfo('get_recommended_helpers', None, None)
     DOWNLOAD_MONSTER_EXCHANGE = EndpointActionInfo('mdatadl', None, None, dtp=0)
+    SHOP_ITEM = EndpointActionInfo('shop_item', None, None)
     SAVE_DECKS = EndpointActionInfo('save_decks', None, None, curdeck=0)
 
 
@@ -168,7 +176,7 @@ class PadApiClient(object):
         self.server = endpoint.value.server
 
         # Current version string
-        self.server_v = self.server.version
+        self.server_v = endpoint.value.force_v or self.server.version
 
         # Stripped version string
         self.server_r = self.server_v.replace('.', '')

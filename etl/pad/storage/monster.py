@@ -231,6 +231,21 @@ class MonsterWithExtraImageInfo(SimpleSqlItem):
     def __str__(self):
         return 'MonsterImage({}): animated={} hq={}'.format(self.key_value(), self.has_animation, self.has_hqimage)
 
+class MonsterWithMPValue(SimpleSqlItem):
+    """Monster helper for inserting MP purchase."""
+    TABLE = 'monsters'
+    KEY_COL = 'monster_id'
+
+    def __init__(self,
+                 monster_id: int = None,
+                 buy_mp: int = None,
+                 tstamp: int = None):
+        self.monster_id = monster_id
+        self.buy_mp = buy_mp
+        self.tstamp = tstamp
+
+    def __str__(self):
+        return 'MonsterMP({}): {}'.format(self.key_value(), self.buy_mp)
 
 class ActiveSkill(SimpleSqlItem):
     """Monster active skill."""
@@ -309,8 +324,8 @@ class LeaderSkill(SimpleSqlItem):
 
         en_ls_converter = EnLSTextConverter()
         jp_ls_converter = JpLSTextConverter()
-        na_description = jp_skill.full_text(en_ls_converter)
-        jp_description = jp_skill.full_text(jp_ls_converter)
+        na_description = jp_skill.full_text(en_ls_converter) or na_skill.raw_description
+        jp_description = jp_skill.full_text(jp_ls_converter) or jp_skill.raw_description
         skill_type_tags = skill_text_typing.parse_ls_conditions(css)
         tags = skill_text_typing.format_conditions(skill_type_tags)
 

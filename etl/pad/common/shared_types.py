@@ -43,13 +43,18 @@ class Curve(Printable):
 
     def value_at(self, level: int):
         f = 1 if self.max_level == 1 else ((level - 1) / (self.max_level - 1))
-        return self.min_value + (self.max_value - self.min_value) * math.pow(f, self.scale)
+        return int(round(self.min_value + (self.max_value - self.min_value) * math.pow(f, self.scale)))
 
 
 class Server(Enum):
     jp = 0
     na = 1
     kr = 2
+
+    @staticmethod
+    def from_str(name: str):
+        name = str(name).lower()
+        return Server[name]
 
 
 class StarterGroup(Enum):
