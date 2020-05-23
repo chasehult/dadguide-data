@@ -1,0 +1,31 @@
+steps:
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'setup'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        mkdir -p output
+        cp -r etl/dadguide_proto output/
+        cp -r etl/pad output/
+        cp -r web/data output/
+        cp web/mobile_api_server.py output/
+        cp web/requirements.txt output/
+        cp web/Dockerfile output/
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'download-db-config'
+    entrypoint: 'bash'
+    args: [ '-c', 'gcloud secrets versions access latest --secret=prod_db_config > output/db_config.json' ]
+
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: 'output'
+    args: [
+      'build',
+      '--build-arg', 'SCRIPT_NAME=mobile_api_server.py',
+      '--build-arg', 'PORT=8001',
+      '-t', 'gcr.io/$PROJECT_ID/mobile-api-server',
+      '.'
+    ]
+
+images: ['gcr.io/$PROJECT_ID/mobile-api-server']

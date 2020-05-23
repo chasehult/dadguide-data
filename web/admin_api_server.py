@@ -3,26 +3,26 @@ import binascii
 import json as base_json
 import os
 import string
+from typing import Optional
 
-import pymysql
 from sanic import Sanic
-from sanic.exceptions import ServerError
 from sanic.response import json, text
 from sanic_compress import Compress
 from sanic_cors import CORS
 
 from dadguide_proto.enemy_skills_pb2 import MonsterBehaviorWithOverrides
-from data.utils import load_from_db
+from data import utils
 from pad.db.db_util import DbWrapper
 from pad.raw.enemy_skills import enemy_skill_proto
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="DadGuide backend server", add_help=False)
+    parser = argparse.ArgumentParser(description="DadGuide admin backend server", add_help=False)
     input_group = parser.add_argument_group("Input")
     input_group.add_argument("--db_config", help="JSON database info")
     input_group.add_argument("--es_dir", help="ES dir base")
     input_group.add_argument("--web_dir", help="Admin app web directory")
+    input_group.add_argument("--port", default='8000', help="TCP port to listen on")
     return parser.parse_args()
 
 
@@ -32,47 +32,8 @@ CORS(app)
 
 db_config = None
 connection = None
-db_wrapper = None  # type: DbWrapper
-es_dir = None  # type: str
-
-VALID_TABLES = [
-    'active_skills',
-    'awakenings',
-    'awoken_skills',
-    'd_attributes',
-    'd_event_types',
-    'drops',
-    'dungeons',
-    'dungeon_type',
-    'encounters',
-    'evolutions',
-    'leader_skills',
-    'monsters',
-    'news',
-    'rank_rewards',
-    'schedule',
-    'series',
-    'skill_condition',
-    'sub_dungeons',
-    'timestamps'
-]
-
-
-@app.route('/dadguide/api/serve')
-async def serve_table(request):
-    table = request.args.get('table')
-    if table is None:
-        raise ServerError('table required')
-    if table not in VALID_TABLES:
-        raise ServerError('unexpected table')
-    tstamp = request.args.get('tstamp')
-    if tstamp is None and table != 'timestamps':
-        raise ServerError('tstamp required')
-    if tstamp is not None and not tstamp.isnumeric():
-        raise ServerError('tstamp must be a number')
-
-    data = load_from_db(db_config, table, tstamp)
-    return json(data)
+db_wrapper = None  # type: Optional[DbWrapper]
+es_dir = None  # type: Optional[str]
 
 
 @app.route('/dadguide/admin/state')
@@ -131,6 +92,7 @@ MONSTERS_SQL = '''
 '''
 
 RANDOM_MONSTERS_SQL = MONSTERS_SQL.format('order by rand()')
+RANDOM_REAPPROVAL_MONSTERS_SQL = MONSTERS_SQL.format('order by rand()').replace('ed.status = 0', 'ed.status = 2')
 EASY_MONSTERS_SQL = MONSTERS_SQL.format('order by length(ed.behavior), rand()')
 
 
@@ -140,32 +102,48 @@ async def serve_random_monsters(request):
     return json({'monsters': data})
 
 
+@app.route('/dadguide/admin/randomReapprovalMonsters')
+async def serve_random_monsters(request):
+    data = db_wrapper.fetch_data(RANDOM_REAPPROVAL_MONSTERS_SQL)
+    return json({'monsters': data})
+
+
 @app.route('/dadguide/admin/easyMonsters')
 async def serve_easy_monsters(request):
     data = db_wrapper.fetch_data(EASY_MONSTERS_SQL)
     return json({'monsters': data})
 
 
+NEXT_MONSTER_SQL = '''
+select e.enemy_id as enemy_id
+from enemy_data ed
+inner join encounters e using (enemy_id)
+inner join dungeons d using (dungeon_id)
+inner join sub_dungeons sd using (sub_dungeon_id)
+where ed.status = 0
+    and d.dungeon_type != 0
+    and e.enemy_id > {}
+    and sd.technical = true
+group by 1
+order by e.enemy_id asc
+limit 1
+'''
+
+NEXT_REAPPROVAL_MONSTER_SQL = NEXT_MONSTER_SQL.replace('ed.status = 0', 'ed.status = 2')
+
+
 @app.route('/dadguide/admin/nextMonster')
 async def serve_next_monster(request):
     enemy_id = int(request.args.get('id'))
-    sql = '''
-        select e.enemy_id as enemy_id
-        from enemy_data ed
-        inner join encounters e
-        using (enemy_id)
-        inner join dungeons d
-        using (dungeon_id)
-        inner join sub_dungeons sd
-        using (sub_dungeon_id)
-        where ed.status = 0
-        and d.dungeon_type != 0
-        and e.enemy_id > {}
-        and sd.technical = true
-        group by 1
-        order by e.enemy_id asc
-        limit 1
-    '''.format(enemy_id)
+    sql = NEXT_MONSTER_SQL.format(enemy_id)
+    data = db_wrapper.get_single_value(sql, int)
+    return text(data)
+
+
+@app.route('/dadguide/admin/nextReapprovalMonster')
+async def serve_next_reapproval_monster(request):
+    enemy_id = int(request.args.get('id'))
+    sql = NEXT_REAPPROVAL_MONSTER_SQL.format(enemy_id)
     data = db_wrapper.get_single_value(sql, int)
     return text(data)
 
@@ -328,12 +306,7 @@ def main(args):
         db_config = base_json.load(f)
 
     global connection
-    connection = pymysql.connect(host=db_config['host'],
-                                 user=db_config['user'],
-                                 password=db_config['password'],
-                                 db=db_config['db'],
-                                 charset=db_config['charset'],
-                                 cursorclass=pymysql.cursors.DictCursor)
+    connection = utils.connect(db_config)
 
     global db_wrapper
     db_wrapper = DbWrapper(False)
@@ -346,7 +319,7 @@ def main(args):
         app.static('/', os.path.join(args.web_dir, 'index.html'))
         app.static('', args.web_dir)
 
-    app.run(host='0.0.0.0', port=8000)
+    app.run(host='0.0.0.0', port=int(args.port))
 
 
 if __name__ == '__main__':

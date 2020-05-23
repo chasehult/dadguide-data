@@ -125,9 +125,10 @@ def load_data(args):
 
     if not args.skipintermediate:
         logger.info('Storing intermediate data')
+        # This is supported for PadSpike, until we can support it better in the dg db
         jp_database.save_all(args.output_dir, args.pretty)
         na_database.save_all(args.output_dir, args.pretty)
-        kr_database.save_all(args.output_dir, args.pretty)
+        # kr_database.save_all(args.output_dir, args.pretty)
 
     logger.info('Connecting to database')
     with open(args.db_config) as f:
@@ -190,9 +191,7 @@ def load_data(args):
     # Update timestamps
     TimestampProcessor().process(db_wrapper)
 
-    # Purge old schedule items and deleted_rows
-    # This is dangerous, so we won't do it yet
-    # PurgeDataProcessor().process(db_wrapper)
+    PurgeDataProcessor().process(db_wrapper)
 
     print('done')
 

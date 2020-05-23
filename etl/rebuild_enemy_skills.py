@@ -75,9 +75,41 @@ LONG_LOOP_MONSTERS = [
     # 104389,  # Justine & Caroline
 ]
 
+# For some monsters we just want to nudge the processor a little.
+# This lets you set skills on a monster that need to be considered conditional.
+CONDITIONAL_OVERRIDES = {
+    # These apply to all instances of the skill
+    0: [
+        6104,  # Ras, Hypo Pursuit
+        16679,  # Ishida, Are you capable of stopping me?
+        9850,  # Bigfoot, Forceful Throw
+        11873,  # Sarasavati, Disappearing Mist
+        17350,  # Jargo, Harmful Prank
+    ],
+    # Use this space for specific monster/skill combinations
+    # monster_id : [es_id1, es_id2...]
+}
+# This lets you set skills on a monster that need to be considered unconditional.
+UNCONDITIONAL_OVERRIDES = {
+    # These apply to all instances of the skill
+    0: [],
+    # Use this space for specific monster/skill combinations
+    # monster_id : [es_id1, es_id2...]
+}
+
 
 def process_card(csc: CrossServerCard) -> MonsterBehavior:
     enemy_behavior = [x.na_skill for x in csc.enemy_behavior]
+
+    # Apply conditional overrides
+    cond_overrides = CONDITIONAL_OVERRIDES.get(csc.monster_id, []) + CONDITIONAL_OVERRIDES[0]
+    uncond_overrides = UNCONDITIONAL_OVERRIDES.get(csc.monster_id, []) + UNCONDITIONAL_OVERRIDES[0]
+    for eb in enemy_behavior:
+        if eb.enemy_skill_id in cond_overrides:
+            eb.behavior.conditional = True
+        if eb.enemy_skill_id in uncond_overrides:
+            eb.behavior.conditional = False
+
     card = csc.na_card.card
     if not enemy_behavior:
         return None
