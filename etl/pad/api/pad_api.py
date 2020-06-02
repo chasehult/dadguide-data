@@ -50,7 +50,7 @@ class ServerEndpointInfo(object):
 
 class ServerEndpoint(Enum):
     NA = ServerEndpointInfo(
-        Server('http://patch-na-pad.gungho.jp/base-na-adr.json'), keygen.generate_key_na, force_v='18.20')
+        Server('http://patch-na-pad.gungho.jp/base-na-adr.json'), keygen.generate_key_na)
     JA = ServerEndpointInfo(
         Server('http://dl.padsv.gungho.jp/base_adr.json'), keygen.generate_key_jp)
     KR = ServerEndpointInfo(
@@ -83,6 +83,7 @@ class EndpointAction(Enum):
     DOWNLOAD_MONSTER_EXCHANGE = EndpointActionInfo('mdatadl', None, None, dtp=0)
     SHOP_ITEM = EndpointActionInfo('shop_item', None, None)
     SAVE_DECKS = EndpointActionInfo('save_decks', None, None, curdeck=0)
+    ACHIEVEMENTS = EndpointActionInfo('dl_al', None, None)
 
 
 def get_headers(host):
