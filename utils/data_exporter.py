@@ -19,7 +19,7 @@ from pad.raw.skills.jp.enemy_skill_text import JpESTextConverter
 from pad.raw.skills.jp.leader_skill_text import JpLSTextConverter
 from pad.raw.skills.leader_skill_info import LeaderSkill
 from pad.raw_processor import merged_database
-from pad.raw_processor.crossed_data import CrossServerDatabase, CrossServerEnemySkill
+from pad.raw_processor.crossed_data import CrossServerDatabase, CrossServerEnemySkill, CrossServerDungeon
 
 AS_CONVERTERS = (JpASTextConverter(), EnASTextConverter(), EnASTextConverter())
 LS_CONVERTERS = (JpLSTextConverter(), EnLSTextConverter(), EnLSTextConverter())
@@ -97,22 +97,7 @@ def save_cross_database(output_dir: str, db: CrossServerDatabase):
     for c in db.ownable_cards:
         card_file = os.path.join(raw_card_dir, '{}.txt'.format(c.monster_id))
         with open(card_file, 'w', encoding='utf-8') as f:
-            # Write top level info for the monster
-            f.write('#{} {}\n'.format(c.monster_id, c.na_card.card.name))
-            card_info = c.jp_card.card
-            f.write('HP: {} ATK: {} RCV: {} LB: {}\n'.format(card_info.max_hp,
-                                                             card_info.max_atk,
-                                                             card_info.max_rcv,
-                                                             card_info.limit_mult))
-            f.write('AWK: {}\n'.format(','.join(map(str, card_info.awakenings))))
-            f.write('SAWK: {}\n'.format(','.join(map(str, card_info.super_awakenings))))
-            f.write('\n')
-
-            if c.active_skill:
-                dump_skill(f, c.active_skill, AS_CONVERTERS, skill_text_typing.parse_as_conditions)
-
-            if c.leader_skill:
-                dump_skill(f, c.leader_skill, LS_CONVERTERS, skill_text_typing.parse_ls_conditions)
+            dump_monster(f, c)
 
     as_file = os.path.join(output_dir, 'active_skills.txt')
     with open(as_file, 'w', encoding='utf-8') as f:
@@ -128,6 +113,30 @@ def save_cross_database(output_dir: str, db: CrossServerDatabase):
     with open(es_file, 'w', encoding='utf-8') as f:
         for css in db.enemy_skills:
             dump_enemy_skill(f, css, ES_CONVERTERS)
+
+    dungeon_file = os.path.join(output_dir, 'dungeons.txt')
+    with open(dungeon_file, 'w', encoding='utf-8') as f:
+        for csd in db.dungeons:
+            dump_dungeon(f, csd)
+
+
+# Write top level info for the monster
+def dump_monster(f, c):
+    f.write('#{} {}\n'.format(c.monster_id, c.na_card.card.name))
+    card_info = c.jp_card.card
+    f.write('HP: {} ATK: {} RCV: {} LB: {}\n'.format(card_info.max_hp,
+                                                     card_info.max_atk,
+                                                     card_info.max_rcv,
+                                                     card_info.limit_mult))
+    f.write('AWK: {}\n'.format(','.join(map(str, card_info.awakenings))))
+    f.write('SAWK: {}\n'.format(','.join(map(str, card_info.super_awakenings))))
+    f.write('\n')
+
+    if c.active_skill:
+        dump_skill(f, c.active_skill, AS_CONVERTERS, skill_text_typing.parse_as_conditions)
+
+    if c.leader_skill:
+        dump_skill(f, c.leader_skill, LS_CONVERTERS, skill_text_typing.parse_ls_conditions)
 
 
 # Write active skill id/type, english name, raw english description, then computed descriptions for
@@ -166,6 +175,18 @@ def dump_enemy_skill(f, css: CrossServerEnemySkill, converter):
     f.write('JP: {}\n'.format(skill.description(converter[0])))
     f.write('EN: {}\n'.format(skill.description(converter[1])))
     f.write('KR: {}\n'.format(skill.description(converter[2])))
+    f.write('\n')
+
+
+def dump_dungeon(f, csd: CrossServerDungeon):
+    na_dungeon = csd.na_dungeon
+
+    f.write('# {} {}\n'.format(csd.dungeon_id, na_dungeon.clean_name))
+    for sd in csd.sub_dungeons:
+        sd_na = sd.na_sub_dungeon
+        f.write('#{} {} -> {}:{} {},{},{}\n'.format(sd_na.sub_dungeon_id, sd_na.clean_name,
+                                                    sd_na.floors, sd_na.stamina,
+                                                    sd_na.hp_mult, sd_na.atk_mult, sd_na.def_mult))
     f.write('\n')
 
 

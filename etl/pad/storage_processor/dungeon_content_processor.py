@@ -89,6 +89,7 @@ class DungeonContentProcessor(object):
                 hp = int(round(sd.hp_mult * enemy.hp.value_at(slot.monster_level)))
                 atk = int(round(sd.atk_mult * enemy.atk.value_at(slot.monster_level)))
                 defence = int(round(sd.def_mult * enemy.defense.value_at(slot.monster_level)))
+                exp = int(round(enemy.xp.value_at(slot.monster_level)))
 
                 # TODO: add comments based on slot data
                 encounter = Encounter(
@@ -106,7 +107,8 @@ class DungeonContentProcessor(object):
                     level=slot.monster_level,
                     hp=hp,
                     atk=atk,
-                    defence=defence)
+                    defence=defence,
+                    exp=exp)
 
                 sql = '''
                     SELECT encounter_id 

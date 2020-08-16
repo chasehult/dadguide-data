@@ -326,14 +326,18 @@ class JpESTextConverter(JpBaseTextConverter, BaseESTextConverter):
     def countdown(self, counter):
         return '「{}」を表示してターンをスキップ'.format(counter)
 
+    def use_skillset(self, skill_set_id):
+        return 'Use skill set #{}'.format(skill_set_id)
+
     def gacha_fever(self, attribute, orb_req):
         return 'フィーバーモード: {}ドロップが{}個消す'.format(self.ATTRIBUTES[attribute], orb_req)
 
     def lead_alter(self, turns, target):
         return '{}ターンの間、リーダーが[{}]になる'.format(turns, target)
 
-    def force_7x6(self, turns):
-        return '{}ターンの間、盤面が7ｘ6になる'.format(turns)
+    def force_board_size(self, turns: int, size_param: int):
+        size = {1: '7ｘ6', 2: '5ｘ4', 3: '6ｘ5'}.get(size_param, 'unknown')
+        return '{}ターンの間、盤面が{}になる'.format(turns, size)
 
     def no_skyfall(self, turns):
         return '{}ターンの間、落ちコンしなくなる'.format(turns)

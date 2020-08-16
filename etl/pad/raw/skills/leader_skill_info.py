@@ -21,6 +21,7 @@ class LeaderSkill(object):
         if not hasattr(self, 'tags'): self.tags = []
         self.name = ms.name
         self.raw_description = ms.clean_description
+        self.raw_data = ms.data
         self._hp = round(hp, 2)
         self._atk = round(atk, 2)
         self._rcv = round(rcv, 2)
@@ -786,12 +787,14 @@ class LSHpReduction(LeaderSkill):
     skill_type = 107
 
     def __init__(self, ms: MonsterSkill):
-        data = ms.data
+        data = merge_defaults(ms.data, [100, 0, 100])
         hp = mult(data[0])
-        super().__init__(107, ms, hp=hp)
+        self.atk_attributes = binary_con(data[1])
+        self.atk_for_attributes = mult(data[2])
+        super().__init__(107, ms, hp=hp, atk=self.atk_for_attributes)
 
     def text(self, converter) -> str:
-        return converter.passive_stats_text(self)
+        return converter.hp_reduction_optional_atk(self.hp, self.atk_attributes, self.atk_for_attributes)
 
 
 class LSReducedHpTypeAtkBoost(LeaderSkill):
@@ -1037,9 +1040,14 @@ class LSMultiAttrConditionalStatBoost(LeaderSkill):
         self.hp_2 = multi_floor(data[5])
         self.atk_2 = multi_floor(data[6])
         self.rcv_2 = multi_floor(data[7])
-        hp = max(self.hp_1, 1) * max(self.hp_2, 1)
-        atk = max(self.atk_1, 1) * max(self.atk_2, 1)
-        rcv = max(self.rcv_1, 1) * max(self.rcv_2, 1)
+
+        def min_1_if_set(settable, value):
+            """Only constrain the value to 1 if it is optional."""
+            return max(value, 1.0) if len(settable) < 5 else value
+
+        hp = min_1_if_set(self.attributes_1, self.hp_1) * min_1_if_set(self.attributes_2, self.hp_2)
+        atk = min_1_if_set(self.attributes_1, self.atk_1) * min_1_if_set(self.attributes_2, self.atk_2)
+        rcv = min_1_if_set(self.attributes_1, self.rcv_1) * min_1_if_set(self.attributes_2, self.rcv_2)
         super().__init__(136, ms, hp=hp, atk=atk, rcv=rcv)
 
     def text(self, converter) -> str:
@@ -1392,6 +1400,15 @@ class LSBlobAtkRcvBoost(LeaderSkill):
         self.max_count = data[6]
         self.max_atk = self.min_atk + self.atk_step * (self.max_count - self.min_count)
         self.max_rcv = self.min_rcv + self.rcv_step * (self.max_count - self.min_count)
+
+        # Overrides for optional atk/rcv
+        if self.min_atk == 0 and self.max_atk == 0:
+            self.min_atk = 1.0
+            self.max_atk = 1.0
+        if self.min_rcv == 0 and self.max_rcv == 0:
+            self.min_rcv = 1.0
+            self.max_rcv = 1.0
+
         super().__init__(167, ms, atk=self.max_atk, rcv=self.max_rcv)
 
     def text(self, converter) -> str:
@@ -1738,12 +1755,12 @@ class LSColorComboBonusCombo(LeaderSkill):
 def convert(skill_list: List[MonsterSkill]):
     results = {}
     for s in skill_list:
-        # try:
-        ns = convert_skill(s)
-        if ns:
-            results[ns.skill_id] = ns
-    # except Exception as ex:
-    # human_fix_logger.warning('Failed to convert {} {}'.format(s.skill_type, ex))
+        try:
+            ns = convert_skill(s)
+            if ns:
+                results[ns.skill_id] = ns
+        except Exception as ex:
+            human_fix_logger.warning('Failed to convert {} {}'.format(s.skill_type, ex))
 
     # Fills in LSMultiPartSkills
     for s in results.values():
@@ -1761,6 +1778,11 @@ def convert(skill_list: List[MonsterSkill]):
 # TODO: These ended up being 1:1, convert skill type to a class value, then
 # load this mapping dynamically via list of skill classes
 def convert_skill(s) -> Optional[LeaderSkill]:
+    if s.skill_id == 1538:
+        # This works around a bug in gungho's code for this specific skill.
+        # Currently the skill data for 1538 is ['無し', '', 0, 0, 0, ''] but it's in use.
+        return LeaderSkill(0, s)
+
     d = {}
     for skill in ALL_LEADER_SKILLS:
         if skill.skill_type in d:

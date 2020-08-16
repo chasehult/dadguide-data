@@ -85,6 +85,11 @@ CONDITIONAL_OVERRIDES = {
         9850,  # Bigfoot, Forceful Throw
         11873,  # Sarasavati, Disappearing Mist
         17350,  # Jargo, Harmful Prank
+        18080,  # Xiang Mei
+        18081,  # You Yu
+        18082,  # Xiu Min
+        18083,  # Xin Hua
+        18115,  # Menoa
     ],
     # Use this space for specific monster/skill combinations
     # monster_id : [es_id1, es_id2...]
@@ -92,10 +97,19 @@ CONDITIONAL_OVERRIDES = {
 # This lets you set skills on a monster that need to be considered unconditional.
 UNCONDITIONAL_OVERRIDES = {
     # These apply to all instances of the skill
-    0: [],
+    0: [
+        18306,  # Shinji&Kaworu
+    ],
     # Use this space for specific monster/skill combinations
     # monster_id : [es_id1, es_id2...]
 }
+
+# Identify monsters who should have their skillsets extracted to a group.
+# This apparently is not universally good so this can be used to manually
+# toggle it on.
+APPLY_SKILLSET_GROUPING = [
+    5302,  # Reiwa
+]
 
 
 def process_card(csc: CrossServerCard) -> MonsterBehavior:
@@ -118,10 +132,13 @@ def process_card(csc: CrossServerCard) -> MonsterBehavior:
     # This can rarely be different, typically when a collab comes to NA/JP
     # in the first run, and then gets updated in JP later.
     # TODO: Possibly this should occur in the merged card
-    card.enemy_skill_max_counter = max(card.enemy_skill_max_counter,
-                                       csc.jp_card.card.enemy_skill_max_counter)
-    card.enemy_skill_counter_increment = max(card.enemy_skill_counter_increment,
-                                             csc.jp_card.card.enemy_skill_counter_increment)
+    # card.enemy_skill_max_counter = max(card.enemy_skill_max_counter,
+    #                                    csc.jp_card.card.enemy_skill_max_counter)
+    # card.enemy_skill_counter_increment = max(card.enemy_skill_counter_increment,
+    #                                          csc.jp_card.card.enemy_skill_counter_increment)
+    # TODO: That wasn't always correct; probably needs to use the value from whichever ES tree is selected
+    card.enemy_skill_max_counter = csc.jp_card.card.enemy_skill_max_counter
+    card.enemy_skill_counter_increment = csc.jp_card.card.enemy_skill_counter_increment
 
     levels = enemy_skillset_processor.extract_levels(enemy_behavior)
     long_loop = csc.monster_id in LONG_LOOP_MONSTERS
@@ -134,7 +151,9 @@ def process_card(csc: CrossServerCard) -> MonsterBehavior:
             skillset = enemy_skillset_processor.convert(card, enemy_behavior, level, long_loop)
             if not skillset.has_actions():
                 continue
-            flattened = enemy_skill_proto.flatten_skillset(level, skillset)
+
+            skillset_extraction = (csc.monster_id % 100000) in APPLY_SKILLSET_GROUPING
+            flattened = enemy_skill_proto.flatten_skillset(level, skillset, skillset_extraction=skillset_extraction)
 
             # Check if we've already seen this level behavior; zero out the level and stick it
             # in a set containing all the levels we've seen. We want the behavior set at the

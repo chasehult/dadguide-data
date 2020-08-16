@@ -249,7 +249,7 @@ class EnESTextConverter(EnBaseTextConverter):
         return 'Survive attacks with 1 HP when HP > {:d}%'.format(percent)
 
     def superresolve(self, percent, remaining):
-        return 'When reduced from HP > {:d}% to 0 HP, revive at {:d}% HP'.format(percent, remaining)
+        return 'Damage which would reduce HP from above {:d}% to below {:d}% is nullified'.format(percent, remaining)
 
     def leadswap(self, turns):
         return 'Leader changes to random sub for {:s}'.format(pluralize2('turn', turns))
@@ -357,14 +357,18 @@ class EnESTextConverter(EnBaseTextConverter):
     def countdown(self, counter):
         return 'Display \'{:d}\' and skip turn'.format(counter)
 
+    def use_skillset(self, skill_set_id):
+        return 'Use skill set #{}'.format(skill_set_id)
+
     def gacha_fever(self, attribute, orb_req):
         return 'Fever Mode: clear {:d} {:s} {:s}'.format(orb_req, self.ATTRIBUTES[attribute], pluralize('orb', orb_req))
 
     def lead_alter(self, turns, target):
         return 'Change leader to [{:d}] for {:s}'.format(target, pluralize2('turn', turns))
 
-    def force_7x6(self, turns):
-        return 'Change board size to 7x6 for {:s}'.format(pluralize2('turn', turns))
+    def force_board_size(self, turns: int, size_param: int):
+        size = {1: '7x6', 2: '5x4', 3: '6x5'}.get(size_param, 'unknown')
+        return 'Change board size to {} for {:s}'.format(size, pluralize2('turn', turns))
 
     def no_skyfall(self, turns):
         return 'No skyfall for {:s}'.format(pluralize2('turn', turns))

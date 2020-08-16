@@ -336,14 +336,18 @@ class KrESTextConverter(KrBaseTextConverter, BaseESTextConverter):
     def countdown(self, counter):
         return '「{}」를 출력하고 턴을 건너뛴다'.format(counter)
 
+    def use_skillset(self, skill_set_id):
+        return 'Use skill set #{}'.format(skill_set_id)
+
     def gacha_fever(self, attribute, orb_req):
         return '피버 모드: {}드롭 {}개를 지우면 클리어'.format(ATTRIBUTE_MAP[attribute], orb_req)
 
     def lead_alter(self, turns, target):
         return '{}턴 동안 리더를 [{}]로 변경'.format(target, turns)
 
-    def force_7x6(self, turns):
-        return '{}턴 동안 드롭판을 7x6으로 변경'.format(turns)
+    def force_board_size(self, turns: int, size_param: int):
+        size = {1: '7x6', 2: '5x4', 3: '6x5'}.get(size_param, 'unknown')
+        return '{}턴 동안 드롭판을 {}으로 변경'.format(turns, size)
 
     def no_skyfall(self, turns):
         return '{}턴 동안 낙차 콤보 없음'.format(turns)

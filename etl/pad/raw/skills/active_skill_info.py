@@ -55,6 +55,7 @@ class ActiveSkill(object):
 
         self.name = ms.name
         self.raw_description = ms.clean_description
+        self.raw_data = ms.data
         self.skill_type = ms.skill_type
         self.levels = ms.levels
         self.turn_max = ms.turn_max
@@ -1097,6 +1098,21 @@ class ASSkyfallLock(ActiveSkill):
         return converter.skyfall_lock(self)
 
 
+class ASSpawnSpinner(ActiveSkill):
+    skill_type = 207
+
+    def __init__(self, ms: MonsterSkill):
+        data = merge_defaults(ms.data, [1, 100, 0, 0, 0, 0, 0, 1])
+        # Only one example of this so far, so these are all just guesses
+        self.turns = data[0]
+        self.speed = multi(data[1])
+        self.count = data[7]
+        super().__init__(ms)
+
+    def text(self, converter: ASTextConverter) -> str:
+        return converter.spawn_spinner(self.turns, self.speed, self.count)
+
+
 def convert(skill_list: List[MonsterSkill]):
     skill_type_to_constructor = {}
     for skill in ALL_ACTIVE_SKILLS:
@@ -1124,7 +1140,7 @@ def convert(skill_list: List[MonsterSkill]):
 
         for p_id in s.child_ids:
             if p_id not in results:
-                print('failed to look up multipart leader skill id:', p_id)
+                human_fix_logger.error('failed to look up multipart leader skill id: %d', p_id)
                 continue
             p_skill = results[p_id]
             s.child_skills.append(p_skill)
@@ -1136,7 +1152,7 @@ def convert(skill_list: List[MonsterSkill]):
 
         for p_id in s.random_skill_ids:
             if p_id not in results:
-                print('failed to look up random leader skill id:', p_id)
+                human_fix_logger.error('failed to look up random leader skill id: %d', p_id)
                 continue
             p_skill = results[p_id]
             s.random_skills.append(p_skill)
@@ -1215,4 +1231,5 @@ ALL_ACTIVE_SKILLS = [
     ASReduceDisableMatch,
     ASChangeMonster,
     ASSkyfallLock,
+    ASSpawnSpinner,
 ]

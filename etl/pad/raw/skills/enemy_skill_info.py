@@ -1209,7 +1209,7 @@ class ESOrbLock(ESAction):
         self.attributes = attribute_bitmap(self.params[1])
         self.count = self.params[2]
 
-        self.conditional = self.attributes != [-1] and len(self.attributes) != 9
+        self.conditional = self.attributes != [-1] and len(self.attributes) < 4
 
     def description(self, converter):
         return converter.orb_lock(self.count, self.attributes)
@@ -1361,17 +1361,17 @@ class ESLeaderAlter(ESAction):
         return converter.lead_alter(self.turns, self.target_card)
 
 
-class ES7x6Change(ESAction):
+class ESBoardSizeChange(ESAction):
     skill_types = [126]
 
     def __init__(self, skill: EnemySkill):
         super().__init__(skill)
         self.turns = self.params[1]
-        self.unknown = self.params[2]  # So far, only a single example with 1, converts to 7x6
+        self.board_size_param = self.params[2]
         self.conditional = True
 
     def description(self, converter):
-        return converter.force_7x6(self.turns)
+        return converter.force_board_size(self.turns, self.board_size_param)
 
 
 class ESNoSkyfall(ESAction):
@@ -1686,6 +1686,21 @@ class ESCountdownMessage(ESBehavior):
         return converter.countdown(self.current_counter)
 
 
+class ESUseSkillset(ESBehavior):
+    """Dummy action class to represent using a skillset"""
+
+    def __init__(self, skillset_id=1):
+        # ID is 1-indexed
+        es_id = -9 - skillset_id
+        raw = [str(es_id), 'Use Skill Set', '-3', '0']
+        dummy_skill = EnemySkill(raw)
+        super().__init__(dummy_skill)
+        self.skillset_id = skillset_id
+
+    def description(self, converter):
+        return converter.use_skillset(self.skillset_id)
+
+
 class ESUnknown(ESAction):  # Pretend to work so we can extract data
     """Unknown ES (Unknown skill type)"""
 
@@ -1841,7 +1856,7 @@ ENEMY_SKILLS = [
     ESInvulnerableOff,
     ESGachaFever,
     ESLeaderAlter,
-    ES7x6Change,
+    ESBoardSizeChange,
     ESNoSkyfall,
     ESFlagOperation,
     ESBranchFlag0,
